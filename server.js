@@ -1,5 +1,10 @@
 import express from 'express';
 import 'dotenv/config';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // --- Global Variables ---
 const app = express();
@@ -298,7 +303,7 @@ app.use((req, res, next) => {
 });
 
 // Serve static files (for Vercel deployment)
-app.use(express.static('.'));
+app.use(express.static(__dirname));
 
 // NEW: Endpoint to get AI explanation for a specific track
 app.post('/api/explain', async (req, res) => {
@@ -452,33 +457,6 @@ ${finalContext.recommendations.map((r, i) =>
   }
 });
 
-// Root route - serve index.html explicitly
-app.get('/', (req, res) => {
-  res.sendFile('index.html', { root: '.' });
-});
-
-// Start server
-app.listen(port, async () => {
-  try {
-    await getSpotifyToken();
-    console.log('✅ Spotify token ready');
-  } catch (error) {
-    console.error('⚠️  Spotify token failed:', error.message);
-  }
-  
-  if (!LASTFM_API_KEY) {
-    console.error('⚠️  LASTFM_API_KEY not found in .env');
-  } else {
-    console.log('✅ Last.fm API key loaded');
-  }
-  
-  console.log(`\n🎵 Music Recommender (FAST MODE) listening at http://localhost:${port}`);
-  console.log('📮 Ready at POST /api/recommend');
-  console.log('⚡ Gemini AI removed for speed');
-  console.log('💾 Cache system enabled (1 hour TTL)');
-  console.log(`📊 Cache stats at GET /api/cache-stats\n`);
-});
-
 // BONUS: Cache statistics endpoint for demo
 app.get('/api/cache-stats', (req, res) => {
   res.json({
@@ -492,3 +470,35 @@ app.get('/api/cache-stats', (req, res) => {
     message: 'Cache helps reduce API calls during demos!'
   });
 });
+
+// Root route - serve index.html explicitly
+app.get('/', (req, res) => {
+  res.sendFile(join(__dirname, 'index.html'));
+});
+
+// Export for Vercel serverless
+export default app;
+
+// Start server (only for local development)
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(port, async () => {
+    try {
+      await getSpotifyToken();
+      console.log('✅ Spotify token ready');
+    } catch (error) {
+      console.error('⚠️  Spotify token failed:', error.message);
+    }
+
+    if (!LASTFM_API_KEY) {
+      console.error('⚠️  LASTFM_API_KEY not found in .env');
+    } else {
+      console.log('✅ Last.fm API key loaded');
+    }
+
+    console.log(`\n🎵 Music Recommender (FAST MODE) listening at http://localhost:${port}`);
+    console.log('📮 Ready at POST /api/recommend');
+    console.log('⚡ Gemini AI removed for speed');
+    console.log('💾 Cache system enabled (1 hour TTL)');
+    console.log(`📊 Cache stats at GET /api/cache-stats\n`);
+  });
+}
