@@ -302,6 +302,9 @@ app.use((req, res, next) => {
   next();
 });
 
+// Serve static files
+app.use(express.static(__dirname));
+
 // NEW: Endpoint to get AI explanation for a specific track
 app.post('/api/explain', async (req, res) => {
   const { seedSong, recommendation } = req.body;
@@ -468,29 +471,29 @@ app.get('/api/cache-stats', (req, res) => {
   });
 });
 
-// Export for Vercel serverless
-export default app;
+// Serve index.html at root
+app.get('/', (req, res) => {
+  res.sendFile(join(__dirname, 'index.html'));
+});
 
-// Start server (only for local development)
-if (process.env.NODE_ENV !== 'production') {
-  app.listen(port, async () => {
-    try {
-      await getSpotifyToken();
-      console.log('✅ Spotify token ready');
-    } catch (error) {
-      console.error('⚠️  Spotify token failed:', error.message);
-    }
+// Start server
+const PORT = process.env.PORT || port;
+app.listen(PORT, async () => {
+  try {
+    await getSpotifyToken();
+    console.log('✅ Spotify token ready');
+  } catch (error) {
+    console.error('⚠️  Spotify token failed:', error.message);
+  }
 
-    if (!LASTFM_API_KEY) {
-      console.error('⚠️  LASTFM_API_KEY not found in .env');
-    } else {
-      console.log('✅ Last.fm API key loaded');
-    }
+  if (!LASTFM_API_KEY) {
+    console.error('⚠️  LASTFM_API_KEY not found in .env');
+  } else {
+    console.log('✅ Last.fm API key loaded');
+  }
 
-    console.log(`\n🎵 Music Recommender (FAST MODE) listening at http://localhost:${port}`);
-    console.log('📮 Ready at POST /api/recommend');
-    console.log('⚡ Gemini AI removed for speed');
-    console.log('💾 Cache system enabled (1 hour TTL)');
-    console.log(`📊 Cache stats at GET /api/cache-stats\n`);
-  });
-}
+  console.log(`\n🎵 Music Recommender listening at http://localhost:${PORT}`);
+  console.log('📮 Ready at POST /api/recommend');
+  console.log('💾 Cache system enabled (1 hour TTL)');
+  console.log(`📊 Cache stats at GET /api/cache-stats\n`);
+});
