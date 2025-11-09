@@ -328,7 +328,7 @@ app.post('/api/explain', async (req, res) => {
       return res.json({ explanation: 'Similar musical style and energy' });
     }
 
-    const model = 'gemini-1.5-flash';
+    const model = 'gemini-2.5-flash-preview-09-2025';
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
 
     const prompt = `Based on "${seedSong.name}" by ${seedSong.artist}, explain in ONE SHORT sentence (max 15 words) why "${recommendation.title}" by ${recommendation.artist} is musically similar. Be concise and focus on ONE key similarity.`;
