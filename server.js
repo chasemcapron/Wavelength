@@ -290,12 +290,15 @@ app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type');
-  
+
   if (req.method === 'OPTIONS') {
     return res.sendStatus(200);
   }
   next();
 });
+
+// Serve static files (for Vercel deployment)
+app.use(express.static('.'));
 
 // NEW: Endpoint to get AI explanation for a specific track
 app.post('/api/explain', async (req, res) => {
