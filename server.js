@@ -302,9 +302,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Serve static files (for Vercel deployment)
-app.use(express.static(__dirname));
-
 // NEW: Endpoint to get AI explanation for a specific track
 app.post('/api/explain', async (req, res) => {
   const { seedSong, recommendation } = req.body;
@@ -469,11 +466,6 @@ app.get('/api/cache-stats', (req, res) => {
     },
     message: 'Cache helps reduce API calls during demos!'
   });
-});
-
-// Root route - serve index.html explicitly
-app.get('/', (req, res) => {
-  res.sendFile(join(__dirname, 'index.html'));
 });
 
 // Export for Vercel serverless
