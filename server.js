@@ -452,6 +452,11 @@ ${finalContext.recommendations.map((r, i) =>
   }
 });
 
+// Root route - serve index.html explicitly
+app.get('/', (req, res) => {
+  res.sendFile('index.html', { root: '.' });
+});
+
 // Start server
 app.listen(port, async () => {
   try {
