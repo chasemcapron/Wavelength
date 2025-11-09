@@ -541,9 +541,12 @@
                     recommendations.appendChild(trackEl);
                 });
 
-                console.log('🔄 Preloading all AI explanations in background...');
+                console.log('🔄 Preloading AI explanations with delay to avoid rate limits...');
                 data.recommendations.forEach((track, index) => {
-                    fetchExplanation(track, index);
+                    // Stagger requests by 500ms each to avoid rate limits
+                    setTimeout(() => {
+                        fetchExplanation(track, index);
+                    }, index * 500);
                 });
 
                 const uniqueArtists = new Set(data.recommendations.map(r => r.artist.toLowerCase())).size;
