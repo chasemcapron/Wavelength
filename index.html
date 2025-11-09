@@ -434,7 +434,7 @@
             error.classList.remove('active');
 
             try {
-                const response = await fetch('http://localhost:3000/api/recommend', {
+                const response = await fetch('/api/recommend', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -562,7 +562,7 @@
             }
 
             try {
-                const response = await fetch('http://localhost:3000/api/explain', {
+                const response = await fetch('/api/explain', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
