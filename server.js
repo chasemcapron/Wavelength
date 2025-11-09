@@ -308,7 +308,7 @@ app.use(express.static(__dirname));
 // NEW: Endpoint to get AI explanation for a specific track
 app.post('/api/explain', async (req, res) => {
   const { seedSong, recommendation } = req.body;
-  
+
   if (!seedSong || !recommendation) {
     return res.status(400).json({ error: 'Missing required data' });
   }
@@ -325,7 +325,7 @@ app.post('/api/explain', async (req, res) => {
 
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
     if (!GEMINI_API_KEY) {
-      return res.json({ explanation: 'AI explanations not configured.' });
+      return res.json({ explanation: 'Similar musical style and energy' });
     }
 
     const model = 'gemini-2.5-flash-preview-09-2025';
@@ -337,26 +337,67 @@ app.post('/api/explain', async (req, res) => {
       contents: [{ parts: [{ text: prompt }] }],
     };
 
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
+    // Retry logic with timeout
+    let lastError;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
-    if (!response.ok) {
-      throw new Error('Gemini API failed');
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: controller.signal
+        });
+
+        clearTimeout(timeout);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`Gemini API error (attempt ${attempt + 1}):`, response.status, errorText);
+          lastError = new Error(`Gemini API returned ${response.status}`);
+
+          // Don't retry on 4xx errors (bad request, auth issues)
+          if (response.status >= 400 && response.status < 500) {
+            break;
+          }
+
+          // Wait before retry on 5xx errors
+          if (attempt < 1) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            continue;
+          }
+        } else {
+          const result = await response.json();
+          const explanation = result.candidates?.[0]?.content?.parts?.[0]?.text || 'Similar musical style';
+
+          // Only cache successful explanations
+          setCachedExplanation(seedSong, recommendation, explanation);
+          return res.json({ explanation });
+        }
+      } catch (fetchError) {
+        console.error(`Gemini fetch error (attempt ${attempt + 1}):`, fetchError.message);
+        lastError = fetchError;
+
+        if (attempt < 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
     }
 
-    const result = await response.json();
-    const explanation = result.candidates?.[0]?.content?.parts?.[0]?.text || 'No explanation available.';
+    // If all retries failed, return a music-based fallback
+    const isSameArtist = recommendation.artist.toLowerCase() === seedSong.artist.toLowerCase();
+    const fallback = isSameArtist
+      ? `More great music from ${recommendation.artist}`
+      : 'Similar musical style and vibe';
 
-    // CACHE THE EXPLANATION
-    setCachedExplanation(seedSong, recommendation, explanation);
+    console.error('All Gemini attempts failed, using fallback');
+    res.json({ explanation: fallback });
 
-    res.json({ explanation });
   } catch (error) {
     console.error('Explanation error:', error);
-    res.json({ explanation: 'Unable to generate explanation.' });
+    res.json({ explanation: 'Similar musical style' });
   }
 });
 
