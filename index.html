@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wavelength - Music Discovery</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Circular', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #121212;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+        }
+
+        .container {
+            background: #181818;
+            border-radius: 8px;
+            padding: 40px;
+            max-width: 900px;
+            width: 100%;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            color: #1DB954;
+            margin-bottom: 8px;
+            font-size: 3em;
+            font-weight: 900;
+            letter-spacing: -1px;
+        }
+
+        .subtitle {
+            color: #b3b3b3;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #fff;
+            font-weight: 700;
+            font-size: 14px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 16px;
+            background: #282828;
+            color: #fff;
+            border: 1px solid #282828;
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            background: #333;
+            border-color: #1DB954;
+        }
+
+        input::placeholder {
+            color: #b3b3b3;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: #000;
+            background: #1DB954;
+            border: none;
+            border-radius: 500px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: #1ed760;
+            transform: scale(1.02);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        button:disabled {
+            background: #535353;
+            color: #b3b3b3;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+            color: #1DB954;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #282828;
+            border-top: 3px solid #1DB954;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .results.active {
+            display: block;
+        }
+
+        .seed-song {
+            background: #282828;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            border-left: 4px solid #1DB954;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .seed-album-cover {
+            width: 100px;
+            height: 100px;
+            border-radius: 8px;
+            object-fit: cover;
+            flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+
+        .seed-info {
+            flex: 1;
+        }
+
+        .seed-song h3 {
+            color: #1DB954;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .seed-song p {
+            color: #b3b3b3;
+            line-height: 1.6;
+        }
+
+        .seed-track-name {
+            color: #fff;
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .seed-artist-name {
+            color: #b3b3b3;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+
+        .recommendations {
+            display: grid;
+            gap: 15px;
+        }
+
+        .track {
+            background: #282828;
+            padding: 16px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .track:hover {
+            background: #3E3E3E;
+            transform: translateY(-2px);
+        }
+
+        .track:hover .explanation-tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .explanation-tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, rgba(30, 215, 96, 0.98), rgba(29, 185, 84, 0.98));
+            color: #000;
+            padding: 0;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+            font-size: 13px;
+            line-height: 1.4;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+            overflow: hidden;
+            max-width: 400px;
+        }
+
+        .tooltip-content {
+            display: flex;
+            gap: 12px;
+            padding: 12px;
+            align-items: center;
+        }
+
+        .tooltip-album-cover {
+            width: 70px;
+            height: 70px;
+            border-radius: 8px;
+            object-fit: cover;
+            flex-shrink: 0;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .tooltip-text {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 0;
+        }
+
+        .tooltip-album-name {
+            font-size: 10px;
+            opacity: 0.8;
+            font-style: italic;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-weight: 600;
+        }
+
+        .tooltip-explanation {
+            font-size: 12px;
+            line-height: 1.3;
+            font-weight: 500;
+        }
+
+        .explanation-tooltip.loading .tooltip-explanation {
+            font-style: italic;
+            opacity: 0.8;
+        }
+
+        .explanation-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 20px;
+            border: 8px solid transparent;
+            border-top-color: rgba(29, 185, 84, 0.98);
+        }
+
+        .track-info {
+            flex: 1;
+        }
+
+        .track-title {
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 4px;
+            font-size: 15px;
+        }
+
+        .track-artist {
+            color: #b3b3b3;
+            font-size: 13px;
+        }
+
+        .track-links {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-link {
+            padding: 8px 16px;
+            background: #1DB954;
+            color: #000;
+            text-decoration: none;
+            border-radius: 500px;
+            font-size: 12px;
+            font-weight: 700;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-link:hover {
+            background: #1ed760;
+            transform: scale(1.05);
+        }
+
+        .btn-app {
+            background: #000;
+            color: #fff;
+        }
+
+        .btn-app:hover {
+            background: #181818;
+        }
+
+        .error {
+            background: #2A1A1A;
+            color: #E74C3C;
+            border: 1px solid #E74C3C;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .error.active {
+            display: block;
+        }
+
+        .stats {
+            text-align: center;
+            color: #b3b3b3;
+            font-size: 13px;
+            margin-top: 16px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Wavelength</h1>
+        <p class="subtitle">Discover music on your wavelength</p>
+
+        <div class="input-group">
+            <label for="songQuery">Enter a song name or Spotify link:</label>
+            <input 
+                type="text" 
+                id="songQuery" 
+                placeholder='e.g., "Bohemian Rhapsody by Queen" or Spotify link'
+                autocomplete="off"
+            />
+        </div>
+
+        <button id="searchBtn" onclick="getRecommendations()">
+            Get Recommendations
+        </button>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Finding similar songs...</p>
+        </div>
+
+        <div class="error" id="error"></div>
+
+        <div class="results" id="results">
+            <div class="seed-song" id="seedSong"></div>
+            <h3 style="margin-bottom: 15px; color: #fff;">Recommended Tracks:</h3>
+            <div class="recommendations" id="recommendations"></div>
+            <div class="stats" id="stats"></div>
+        </div>
+    </div>
+
+    <script>
+        const input = document.getElementById('songQuery');
+        const searchBtn = document.getElementById('searchBtn');
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+        const error = document.getElementById('error');
+        const seedSong = document.getElementById('seedSong');
+        const recommendations = document.getElementById('recommendations');
+        const stats = document.getElementById('stats');
+
+        let currentSeedSong = null;
+        let currentSeedSongData = null;
+
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                getRecommendations();
+            }
+        });
+
+        async function getRecommendations() {
+            const query = input.value.trim();
+            
+            if (!query) {
+                showError('Please enter a song name or Spotify link');
+                return;
+            }
+
+            searchBtn.disabled = true;
+            loading.classList.add('active');
+            results.classList.remove('active');
+            error.classList.remove('active');
+
+            try {
+                const response = await fetch('http://localhost:3000/api/recommend', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ query })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to get recommendations');
+                }
+
+                const data = await response.json();
+                console.log('API Response:', data);
+                console.log('Seed song data:', data.seedSong);
+                
+                currentSeedSongData = data.seedSong || null;
+                console.log('Stored seed song data:', currentSeedSongData);
+                
+                displayResults(data);
+
+            } catch (err) {
+                showError(err.message);
+            } finally {
+                searchBtn.disabled = false;
+                loading.classList.remove('active');
+            }
+        }
+
+        function displayResults(data) {
+            results.classList.add('active');
+
+            if (data.recommendations && data.recommendations.length > 0) {
+                // Use the seedSong data from the API response
+                if (data.seedSong) {
+                    currentSeedSong = {
+                        name: data.seedSong.name,
+                        artist: data.seedSong.artist
+                    };
+                    currentSeedSongData = data.seedSong;
+                } else {
+                    // Fallback: Extract from response text
+                    const match = data.response.match(/Based on "([^"]+)" by ([^,]+)/);
+                    if (match) {
+                        currentSeedSong = {
+                            name: match[1],
+                            artist: match[2].trim()
+                        };
+                    }
+                }
+
+                console.log('Building seed song display with:', currentSeedSongData);
+
+                const albumCoverHtml = currentSeedSongData?.albumCover 
+                    ? `<img src="${currentSeedSongData.albumCover}" alt="${escapeHtml(currentSeedSongData.albumName || 'Album')}" class="seed-album-cover" />`
+                    : '<div class="seed-album-cover" style="background: linear-gradient(135deg, #1DB954, #1ed760); display: flex; align-items: center; justify-content: center; font-size: 40px;">🎵</div>';
+
+                const songName = currentSeedSong?.name || 'Unknown Track';
+                const artistName = currentSeedSong?.artist || 'Unknown Artist';
+
+                seedSong.innerHTML = `
+                    ${albumCoverHtml}
+                    <div class="seed-info">
+                        <h3>Finding songs on your wavelength</h3>
+                        <div class="seed-track-name">${escapeHtml(songName)}</div>
+                        <div class="seed-artist-name">${escapeHtml(artistName)}</div>
+                        <p style="font-size: 12px; opacity: 0.7;">💡 Hover over any track for AI insights</p>
+                    </div>
+                `;
+            }
+
+            recommendations.innerHTML = '';
+            
+            if (data.recommendations && data.recommendations.length > 0) {
+                data.recommendations.forEach((track, index) => {
+                    const trackEl = document.createElement('div');
+                    trackEl.className = 'track';
+                    trackEl.dataset.index = index;
+                    
+                    const albumCoverImg = track.albumCover 
+                        ? `<img src="${track.albumCover}" alt="${escapeHtml(track.albumName)}" class="tooltip-album-cover" loading="lazy" />`
+                        : '<div class="tooltip-album-cover" style="background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; font-size: 28px;">🎵</div>';
+                    
+                    trackEl.innerHTML = `
+                        <div class="explanation-tooltip" id="tooltip-${index}">
+                            <div class="tooltip-content">
+                                ${albumCoverImg}
+                                <div class="tooltip-text">
+                                    <div class="tooltip-album-name">${escapeHtml(track.albumName || 'Album')}</div>
+                                    <div class="tooltip-explanation">Loading...</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="track-info">
+                            <div class="track-title">${index + 1}. ${escapeHtml(track.title)}</div>
+                            <div class="track-artist">${escapeHtml(track.artist)}</div>
+                        </div>
+                        <div class="track-links">
+                            <a href="${track.uri}" class="btn-link btn-app">Open in App</a>
+                            <a href="${track.url}" class="btn-link" target="_blank" rel="noopener">Web Player</a>
+                        </div>
+                    `;
+                    
+                    recommendations.appendChild(trackEl);
+                });
+
+                console.log('🔄 Preloading all AI explanations in background...');
+                data.recommendations.forEach((track, index) => {
+                    fetchExplanation(track, index);
+                });
+
+                const uniqueArtists = new Set(data.recommendations.map(r => r.artist.toLowerCase())).size;
+                const diversity = Math.round((uniqueArtists / data.recommendations.length) * 100);
+                stats.innerHTML = `${data.recommendations.length} tracks from ${uniqueArtists} different artists (${diversity}% diversity)`;
+            }
+        }
+
+        async function fetchExplanation(track, index) {
+            const tooltip = document.getElementById(`tooltip-${index}`);
+            const explanationEl = tooltip.querySelector('.tooltip-explanation');
+            
+            if (!currentSeedSong) {
+                explanationEl.textContent = 'Similar vibe and energy';
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:3000/api/explain', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        seedSong: currentSeedSong,
+                        recommendation: track
+                    })
+                });
+
+                const data = await response.json();
+                explanationEl.textContent = data.explanation || 'Similar style and mood';
+                tooltip.classList.remove('loading');
+            } catch (error) {
+                explanationEl.textContent = 'Similar style and mood';
+                tooltip.classList.remove('loading');
+            }
+        }
+
+        function showError(message) {
+            error.textContent = message;
+            error.classList.add('active');
+            setTimeout(() => {
+                error.classList.remove('active');
+            }, 5000);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>

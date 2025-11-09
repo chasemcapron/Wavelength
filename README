@@ -1,0 +1,339 @@
+# 🎵 Wavelength
+
+> Discover music on your wavelength
+
+Wavelength is an intelligent music recommendation system that finds songs similar to your favorites using collaborative filtering and audio analysis. Built with a Spotify-inspired UI and powered by Last.fm's similarity data.
+
+![Wavelength Banner](https://img.shields.io/badge/Music-Discovery-1DB954?style=for-the-badge&logo=spotify)
+
+## ✨ Features
+
+- **Smart Song Matching**: Uses Last.fm's collaborative filtering to find musically similar tracks
+- **Artist Diversity**: Ensures at least 40% of recommendations come from different artists
+- **AI Insights**: Hover over any track to see AI-generated explanations of musical similarities
+- **Album Art Display**: Beautiful album covers for seed songs and recommendations
+- **Instant Spotify Links**: Direct links to open tracks in Spotify app or web player
+- **Performance Optimized**: 
+  - Results load in under 1 second
+  - AI explanations preload in the background
+  - Smart caching prevents API rate limits during demos
+- **Spotify-Inspired UI**: Dark theme with Spotify green accents (#1DB954)
+
+## 🛠️ Tech Stack
+
+**Backend:**
+- Node.js + Express
+- Spotify Web API (track info, search)
+- Last.fm API (similarity recommendations)
+- Google Gemini API (AI explanations)
+
+**Frontend:**
+- Vanilla HTML/CSS/JavaScript
+- No frameworks (lightweight & fast)
+
+**Key Features:**
+- In-memory caching (1-hour TTL)
+- Parallel API calls for speed
+- CORS-enabled for local development
+
+## 📋 Prerequisites
+
+- Node.js (v16 or higher)
+- npm or yarn
+- API keys for:
+  - Spotify (Client ID & Secret)
+  - Last.fm (API Key)
+  - Google Gemini (API Key)
+
+## 🚀 Setup Instructions
+
+### 1. Clone the Repository
+
+```bash
+git clone <your-repo-url>
+cd wavelength
+```
+
+### 2. Install Dependencies
+
+```bash
+npm install
+```
+
+Required packages:
+- `express` - Web server
+- `dotenv` - Environment variable management
+
+### 3. Get API Keys
+
+#### Spotify API
+1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
+2. Click "Create app"
+3. Fill in:
+   - **App name**: "Wavelength" (or your choice)
+   - **App description**: "Music recommendation system"
+   - **Redirect URI**: `http://localhost:3000/callback`
+4. Accept terms and click "Save"
+5. Copy your **Client ID** and **Client Secret**
+
+#### Last.fm API
+1. Go to [Last.fm API Account Creation](https://www.last.fm/api/account/create)
+2. Fill in:
+   - **Application name**: "Wavelength"
+   - **Application description**: "Music recommendations"
+3. Submit and copy your **API Key**
+
+#### Google Gemini API
+1. Go to [Google AI Studio](https://aistudio.google.com/app/apikey)
+2. Click "Create API Key"
+3. Copy your **API Key**
+
+### 4. Configure Environment Variables
+
+Create a `.env` file in the root directory:
+
+```env
+SPOTIFY_CLIENT_ID=your_spotify_client_id_here
+SPOTIFY_CLIENT_SECRET=your_spotify_client_secret_here
+LASTFM_API_KEY=your_lastfm_api_key_here
+GEMINI_API_KEY=your_gemini_api_key_here
+```
+
+**Important:** Never commit your `.env` file to Git!
+
+### 5. Run the Application
+
+```bash
+node server.js
+```
+
+You should see:
+```
+✅ Spotify token ready
+✅ Last.fm API key loaded
+🎵 Music Recommender (FAST MODE) listening at http://localhost:3000
+📮 Ready at POST /api/recommend
+⚡ Gemini AI removed for speed
+💾 Cache system enabled (1 hour TTL)
+```
+
+### 6. Open the Web Interface
+
+Open `index.html` in your browser, or simply double-click the file.
+
+## 🎯 How to Use
+
+1. **Enter a song**: Type a song name and artist in the format:
+   ```
+   Let It Happen by Tame Impala
+   ```
+   Or paste a Spotify track URL:
+   ```
+   https://open.spotify.com/track/2X485T9Z5Ly0xyaghN73ed
+   ```
+
+2. **Get Recommendations**: Click "Get Recommendations" (or press Enter)
+
+3. **Explore Results**: 
+   - View 10 similar tracks
+   - Hover over any track to see AI-generated similarity explanations
+   - Click "Open in App" to play in Spotify
+   - Click "Web Player" to play in browser
+
+## 🏗️ Architecture
+
+```
+┌─────────────┐
+│   Browser   │
+│  (index.html)│
+└──────┬──────┘
+       │ HTTP POST /api/recommend
+       ▼
+┌─────────────────┐      ┌──────────────┐
+│  Express Server │──────▶│  Cache Layer │
+│   (server.js)   │◀──────│  (1hr TTL)   │
+└────────┬────────┘      └──────────────┘
+         │
+    ┌────┴─────┬──────────┬────────────┐
+    │          │          │            │
+    ▼          ▼          ▼            ▼
+┌────────┐ ┌────────┐ ┌────────┐ ┌─────────┐
+│Spotify │ │Last.fm │ │Spotify │ │ Gemini  │
+│ Search │ │Similar │ │Enrich  │ │Explain  │
+└────────┘ └────────┘ └────────┘ └─────────┘
+```
+
+### Request Flow:
+
+1. **User Input** → Song name or Spotify URL
+2. **Cache Check** → Return if cached (instant!)
+3. **Spotify Search** → Find the track metadata
+4. **Last.fm API** → Get 50 similar tracks
+5. **Spotify Batch** → Enrich 20 tracks with album art (parallel)
+6. **Filter & Sort** → Ensure 40% artist diversity
+7. **Cache & Return** → 10 recommendations + metadata
+8. **AI Explanations** → Preload in background (hover to see)
+
+## 🎨 Key Features Explained
+
+### Artist Diversity (40% Rule)
+```javascript
+// Ensures recommendations aren't all from the same artist
+const differentArtists = recommendations.filter(r => 
+  r.artist !== seedArtist
+).length;
+
+// Minimum 4 out of 10 are different artists
+```
+
+### Smart Caching
+```javascript
+// First search: Full API calls
+"Bohemian Rhapsody by Queen" → 20 API calls, 2 seconds
+
+// Second search: Instant from cache
+"Bohemian Rhapsody by Queen" → 0 API calls, 50ms ⚡
+```
+
+### Background AI Loading
+```javascript
+// Results display immediately
+// AI explanations load in parallel
+// Hover tooltips show once ready
+```
+
+## 🐛 Troubleshooting
+
+### "403 Forbidden" Error
+- **Cause**: Invalid Spotify credentials
+- **Fix**: Regenerate your Client Secret in Spotify Dashboard
+
+### "No similar tracks found"
+- **Cause**: Last.fm doesn't have data for that song
+- **Fix**: Try a more popular song or different search term
+
+### Album cover not showing
+- **Cause**: Track metadata missing album art
+- **Fix**: This is normal for some tracks, will show music note emoji
+
+### Slow performance
+- **Cause**: First search hits all APIs
+- **Fix**: Normal! Second search of same song will be instant (cached)
+
+### Rate limit errors
+- **Cause**: Too many API calls
+- **Fix**: Cache system prevents this. If it happens, wait 1 hour or restart server
+
+## 📊 API Endpoints
+
+### `POST /api/recommend`
+Get song recommendations
+
+**Request:**
+```json
+{
+  "query": "Let It Happen by Tame Impala"
+}
+```
+
+**Response:**
+```json
+{
+  "response": "Based on...",
+  "seedSong": {
+    "name": "Let It Happen",
+    "artist": "Tame Impala",
+    "albumCover": "https://...",
+    "url": "https://open.spotify.com/..."
+  },
+  "recommendations": [
+    {
+      "title": "Electric Feel",
+      "artist": "MGMT",
+      "url": "https://...",
+      "uri": "spotify:track:...",
+      "albumCover": "https://...",
+      "albumName": "Oracular Spectacular"
+    }
+  ]
+}
+```
+
+### `POST /api/explain`
+Get AI explanation for similarity
+
+**Request:**
+```json
+{
+  "seedSong": {
+    "name": "Let It Happen",
+    "artist": "Tame Impala"
+  },
+  "recommendation": {
+    "title": "Electric Feel",
+    "artist": "MGMT"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "explanation": "Similar psychedelic synth-pop sound with dreamy vocals."
+}
+```
+
+### `GET /api/cache-stats`
+View cache statistics (useful for demos)
+
+**Response:**
+```json
+{
+  "recommendations": {
+    "size": 5,
+    "entries": ["let it happen|tame impala", "..."]
+  },
+  "explanations": {
+    "size": 50
+  }
+}
+```
+
+## 🎓 Demo Tips
+
+1. **Pre-warm the cache**: Search 5-10 popular songs before your demo
+2. **Use popular songs**: "Bohemian Rhapsody", "Blinding Lights", "Let It Happen"
+3. **Show the hover effect**: Demonstrate AI insights
+4. **Check cache stats**: Visit `/api/cache-stats` to show caching works
+5. **Test both input methods**: Song name AND Spotify URL
+
+### Recommended Demo Songs:
+- "Blinding Lights by The Weeknd"
+- "Bohemian Rhapsody by Queen"
+- "Let It Happen by Tame Impala"
+- "Redbone by Childish Gambino"
+- "Electric Feel by MGMT"
+
+## 🔒 Security Notes
+
+- Never commit `.env` file
+- API keys are server-side only (not exposed to browser)
+- CORS is enabled for local development only
+- Cache data is in-memory (not persisted to disk)
+
+## 📝 License
+
+This project is for educational purposes.
+
+## 🙏 Acknowledgments
+
+- **Spotify** - Music metadata and playback
+- **Last.fm** - Collaborative filtering data
+- **Google Gemini** - AI-powered explanations
+- **Claude** - Development assistance
+
+---
+
+**Made with 🎵 by [Your Name]**
+
+*Find your wavelength.*
