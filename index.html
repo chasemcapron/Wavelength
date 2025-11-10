@@ -13,36 +13,271 @@
 
         body {
             font-family: 'Circular', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: #121212;
+            background: #0a0e1a;
             min-height: 100vh;
             padding: 20px;
             display: flex;
             justify-content: center;
             align-items: center;
             color: #fff;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Animated wireframe wave background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                linear-gradient(0deg, transparent 24%, rgba(29, 185, 84, 0.05) 25%, rgba(29, 185, 84, 0.05) 26%, transparent 27%, transparent 74%, rgba(29, 185, 84, 0.05) 75%, rgba(29, 185, 84, 0.05) 76%, transparent 77%, transparent),
+                linear-gradient(90deg, transparent 24%, rgba(29, 185, 84, 0.05) 25%, rgba(29, 185, 84, 0.05) 26%, transparent 27%, transparent 74%, rgba(29, 185, 84, 0.05) 75%, rgba(29, 185, 84, 0.05) 76%, transparent 77%, transparent);
+            background-size: 50px 50px;
+            opacity: 0.3;
+            animation: wave 20s ease-in-out infinite;
+            z-index: 0;
+        }
+
+        @keyframes wave {
+            0%, 100% { transform: perspective(500px) rotateX(60deg) translateY(0); }
+            50% { transform: perspective(500px) rotateX(60deg) translateY(-20px); }
         }
 
         .container {
-            background: #181818;
+            background: rgba(24, 24, 24, 0.95);
             border-radius: 8px;
             padding: 40px;
             max-width: 900px;
             width: 100%;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
+            position: relative;
+            z-index: 1;
+            backdrop-filter: blur(10px);
+        }
+
+        /* Floating keycap hero section */
+        .hero {
+            text-align: center;
+            margin-bottom: 50px;
+            position: relative;
+            min-height: 220px;
+            overflow: visible;
+            perspective: 1000px;
+        }
+
+        .keycap-container {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+            padding: 40px 0;
+            transform-style: preserve-3d;
+        }
+
+        .keycap {
+            width: 65px;
+            height: 65px;
+            background: linear-gradient(145deg, #f0f0f0, #c0c0c0);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: 700;
+            color: #333;
+            box-shadow: 
+                0 4px 0 #d0d0d0,
+                0 8px 0 #b0b0b0,
+                0 12px 0 #a0a0a0,
+                0 16px 0 #909090,
+                0 20px 15px rgba(0, 0, 0, 0.4),
+                inset 0 2px 1px #ffffff,
+                inset 0 -1px 2px rgba(0, 0, 0, 0.1);
+            animation-timing-function: ease-in-out;
+            transform-style: preserve-3d;
+            position: relative;
+        }
+
+        /* Add bevel edges to the keycap for extra depth */
+        .keycap::before {
+            content: '';
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            right: 4px;
+            bottom: 4px;
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.4), transparent 50%);
+            border-radius: 8px;
+            pointer-events: none;
+        }
+
+        /* Add visible side/stem of keycap */
+        .keycap::after {
+            content: '';
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 20px;
+            background: linear-gradient(180deg, #808080, #606060);
+            border-radius: 0 0 4px 4px;
+            box-shadow: 
+                0 2px 8px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            z-index: -1;
+        }
+
+        /* Individual positioning and rotation for each keycap */
+        .keycap:nth-child(1) { 
+            animation-delay: 0s;
+            transform: rotateX(20deg) rotateY(-10deg) rotateZ(15deg);
+        }
+        .keycap:nth-child(2) { 
+            animation-delay: -1s;
+            transform: rotateX(20deg) rotateY(-10deg) rotateZ(-10deg);
+        }
+        .keycap:nth-child(3) { 
+            animation-delay: -2s;
+            transform: rotateX(20deg) rotateY(-10deg) rotateZ(5deg);
+        }
+        .keycap:nth-child(4) { 
+            animation-delay: -3s;
+            transform: rotateX(20deg) rotateY(-10deg) rotateZ(20deg);
+        }
+        .keycap:nth-child(5) { 
+            animation-delay: -4s;
+            transform: rotateX(20deg) rotateY(-10deg) rotateZ(-15deg);
+        }
+        .keycap:nth-child(6) { 
+            animation-delay: -5s;
+            transform: rotateX(20deg) rotateY(-10deg) rotateZ(8deg);
+        }
+        .keycap:nth-child(7) { 
+            animation-delay: -1.5s;
+            transform: rotateX(20deg) rotateY(-10deg) rotateZ(-12deg);
+        }
+        .keycap:nth-child(8) { 
+            animation-delay: -2.5s;
+            transform: rotateX(20deg) rotateY(-10deg) rotateZ(18deg);
+        }
+        .keycap:nth-child(9) { 
+            animation-delay: -3.5s;
+            transform: rotateX(20deg) rotateY(-10deg) rotateZ(-8deg);
+        }
+        .keycap:nth-child(10) { 
+            animation-delay: -4.5s;
+            transform: rotateX(20deg) rotateY(-10deg) rotateZ(12deg);
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0px) rotateX(20deg) rotateY(-10deg);
+            }
+            50% {
+                transform: translateY(-30px) rotateX(22deg) rotateY(-8deg);
+            }
+        }
+
+        /* Preserve individual rotateZ during animation */
+        .keycap:nth-child(1) { 
+            animation: float1 6s ease-in-out infinite;
+        }
+        .keycap:nth-child(2) { 
+            animation: float2 6s ease-in-out infinite;
+            animation-delay: -1s;
+        }
+        .keycap:nth-child(3) { 
+            animation: float3 6s ease-in-out infinite;
+            animation-delay: -2s;
+        }
+        .keycap:nth-child(4) { 
+            animation: float4 6s ease-in-out infinite;
+            animation-delay: -3s;
+        }
+        .keycap:nth-child(5) { 
+            animation: float5 6s ease-in-out infinite;
+            animation-delay: -4s;
+        }
+        .keycap:nth-child(6) { 
+            animation: float6 6s ease-in-out infinite;
+            animation-delay: -5s;
+        }
+        .keycap:nth-child(7) { 
+            animation: float7 6s ease-in-out infinite;
+            animation-delay: -1.5s;
+        }
+        .keycap:nth-child(8) { 
+            animation: float8 6s ease-in-out infinite;
+            animation-delay: -2.5s;
+        }
+        .keycap:nth-child(9) { 
+            animation: float9 6s ease-in-out infinite;
+            animation-delay: -3.5s;
+        }
+        .keycap:nth-child(10) { 
+            animation: float10 6s ease-in-out infinite;
+            animation-delay: -4.5s;
+        }
+
+        @keyframes float1 {
+            0%, 100% { transform: translateY(0px) rotateX(20deg) rotateY(-10deg) rotateZ(15deg); }
+            50% { transform: translateY(-30px) rotateX(22deg) rotateY(-8deg) rotateZ(15deg); }
+        }
+        @keyframes float2 {
+            0%, 100% { transform: translateY(0px) rotateX(20deg) rotateY(-10deg) rotateZ(-10deg); }
+            50% { transform: translateY(-30px) rotateX(22deg) rotateY(-8deg) rotateZ(-10deg); }
+        }
+        @keyframes float3 {
+            0%, 100% { transform: translateY(0px) rotateX(20deg) rotateY(-10deg) rotateZ(5deg); }
+            50% { transform: translateY(-30px) rotateX(22deg) rotateY(-8deg) rotateZ(5deg); }
+        }
+        @keyframes float4 {
+            0%, 100% { transform: translateY(0px) rotateX(20deg) rotateY(-10deg) rotateZ(20deg); }
+            50% { transform: translateY(-30px) rotateX(22deg) rotateY(-8deg) rotateZ(20deg); }
+        }
+        @keyframes float5 {
+            0%, 100% { transform: translateY(0px) rotateX(20deg) rotateY(-10deg) rotateZ(-15deg); }
+            50% { transform: translateY(-30px) rotateX(22deg) rotateY(-8deg) rotateZ(-15deg); }
+        }
+        @keyframes float6 {
+            0%, 100% { transform: translateY(0px) rotateX(20deg) rotateY(-10deg) rotateZ(8deg); }
+            50% { transform: translateY(-30px) rotateX(22deg) rotateY(-8deg) rotateZ(8deg); }
+        }
+        @keyframes float7 {
+            0%, 100% { transform: translateY(0px) rotateX(20deg) rotateY(-10deg) rotateZ(-12deg); }
+            50% { transform: translateY(-30px) rotateX(22deg) rotateY(-8deg) rotateZ(-12deg); }
+        }
+        @keyframes float8 {
+            0%, 100% { transform: translateY(0px) rotateX(20deg) rotateY(-10deg) rotateZ(18deg); }
+            50% { transform: translateY(-30px) rotateX(22deg) rotateY(-8deg) rotateZ(18deg); }
+        }
+        @keyframes float9 {
+            0%, 100% { transform: translateY(0px) rotateX(20deg) rotateY(-10deg) rotateZ(-8deg); }
+            50% { transform: translateY(-30px) rotateX(22deg) rotateY(-8deg) rotateZ(-8deg); }
+        }
+        @keyframes float10 {
+            0%, 100% { transform: translateY(0px) rotateX(20deg) rotateY(-10deg) rotateZ(12deg); }
+            50% { transform: translateY(-30px) rotateX(22deg) rotateY(-8deg) rotateZ(12deg); }
         }
 
         h1 {
-            color: #1DB954;
-            margin-bottom: 8px;
-            font-size: 3em;
-            font-weight: 900;
-            letter-spacing: -1px;
+            display: none; /* Hidden since we're using keycaps */
         }
 
         .subtitle {
-            color: #b3b3b3;
-            margin-bottom: 30px;
-            font-size: 16px;
+            color: #1DB954;
+            margin-bottom: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
         }
 
         .input-group {
@@ -369,8 +604,23 @@
 </head>
 <body>
     <div class="container">
+        <div class="hero">
+            <div class="keycap-container">
+                <div class="keycap">W</div>
+                <div class="keycap">A</div>
+                <div class="keycap">V</div>
+                <div class="keycap">E</div>
+                <div class="keycap">L</div>
+                <div class="keycap">E</div>
+                <div class="keycap">N</div>
+                <div class="keycap">G</div>
+                <div class="keycap">T</div>
+                <div class="keycap">H</div>
+            </div>
+            <p class="subtitle">Discover music on your wavelength</p>
+        </div>
+
         <h1>Wavelength</h1>
-        <p class="subtitle">Discover music on your wavelength</p>
 
         <div class="input-group">
             <label for="songQuery">Enter a song name or Spotify link:</label>
@@ -395,7 +645,7 @@
 
         <div class="results" id="results">
             <div class="seed-song" id="seedSong"></div>
-            <h3 style="margin-bottom: 15px; color: #fff;">Recommended Tracks:</h3>
+            <h3 style="margin-bottom: 15px; color: #333;">Recommended Tracks:</h3>
             <div class="recommendations" id="recommendations"></div>
             <div class="stats" id="stats"></div>
         </div>
@@ -412,8 +662,9 @@
         const stats = document.getElementById('stats');
 
         let currentSeedSong = null;
-        let currentSeedSongData = null;
+        let currentSeedSongData = null; // Store full seed song data
 
+        // Allow Enter key to submit
         input.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 getRecommendations();
@@ -428,6 +679,7 @@
                 return;
             }
 
+            // Show loading state
             searchBtn.disabled = true;
             loading.classList.add('active');
             results.classList.remove('active');
@@ -448,9 +700,10 @@
                 }
 
                 const data = await response.json();
-                console.log('API Response:', data);
-                console.log('Seed song data:', data.seedSong);
+                console.log('API Response:', data); // Debug log
+                console.log('Seed song data:', data.seedSong); // Debug seed song
                 
+                // Store full seed song data
                 currentSeedSongData = data.seedSong || null;
                 console.log('Stored seed song data:', currentSeedSongData);
                 
@@ -465,8 +718,10 @@
         }
 
         function displayResults(data) {
+            // Show results container
             results.classList.add('active');
 
+            // Store seed song for explanations
             if (data.recommendations && data.recommendations.length > 0) {
                 // Use the seedSong data from the API response
                 if (data.seedSong) {
@@ -488,6 +743,7 @@
 
                 console.log('Building seed song display with:', currentSeedSongData);
 
+                // Build seed song display with album cover
                 const albumCoverHtml = currentSeedSongData?.albumCover 
                     ? `<img src="${currentSeedSongData.albumCover}" alt="${escapeHtml(currentSeedSongData.albumName || 'Album')}" class="seed-album-cover" />`
                     : '<div class="seed-album-cover" style="background: linear-gradient(135deg, #1DB954, #1ed760); display: flex; align-items: center; justify-content: center; font-size: 40px;">🎵</div>';
@@ -506,6 +762,7 @@
                 `;
             }
 
+            // Display recommendations
             recommendations.innerHTML = '';
             
             if (data.recommendations && data.recommendations.length > 0) {
@@ -549,6 +806,7 @@
                     }, index * 500);
                 });
 
+                // Calculate diversity stats
                 const uniqueArtists = new Set(data.recommendations.map(r => r.artist.toLowerCase())).size;
                 const diversity = Math.round((uniqueArtists / data.recommendations.length) * 100);
                 stats.innerHTML = `${data.recommendations.length} tracks from ${uniqueArtists} different artists (${diversity}% diversity)`;
