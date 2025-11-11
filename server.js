@@ -926,12 +926,18 @@ app.get('/auth/callback', async (req, res) => {
       userId: profile.id
     });
 
-    // Send session ID to client via cookie and close popup
+    // Send session ID to client and handle both popup and redirect modes
     res.send(`
       <script>
         localStorage.setItem('wavelength_session', '${sessionId}');
-        window.opener.postMessage({ type: 'auth-success', sessionId: '${sessionId}' }, '*');
-        window.close();
+        if (window.opener) {
+          // Popup mode (desktop) - send message to parent window
+          window.opener.postMessage({ type: 'auth-success', sessionId: '${sessionId}' }, '*');
+          window.close();
+        } else {
+          // Redirect mode (mobile) - go back to main page
+          window.location.href = '/';
+        }
       </script>
     `);
   } catch (error) {

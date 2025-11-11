@@ -890,8 +890,8 @@
             }
 
             .song-detail-content {
-                max-width: 90%;
-                width: 90%;
+                max-width: calc(100vw - 30px);
+                width: calc(100vw - 30px);
                 margin: 0;
                 border-radius: 12px;
                 animation: none;
@@ -1595,14 +1595,6 @@
             artistName.textContent = track.artist;
             albumName.textContent = track.albumName || 'Unknown Album';
 
-            // Set album cover
-            if (track.albumCover) {
-                albumImg.src = track.albumCover;
-                albumImg.style.display = 'block';
-            } else {
-                albumImg.style.display = 'none';
-            }
-
             // Show explanation (use cached if available)
             if (songExplanations[index]) {
                 explanation.textContent = songExplanations[index];
@@ -1615,8 +1607,35 @@
             document.body.classList.add('modal-open');
             modal.classList.add('active');
 
-            // Position modal in viewport
-            positionModal();
+            // Position modal after image loads (Option A+C Hybrid)
+            let positioned = false;
+            const doPosition = () => {
+                if (!positioned) {
+                    positioned = true;
+                    positionModal();
+                }
+            };
+
+            // Set album cover and wait for load
+            if (track.albumCover) {
+                albumImg.src = track.albumCover;
+                albumImg.style.display = 'block';
+
+                // If image is already cached, position immediately
+                if (albumImg.complete) {
+                    doPosition();
+                } else {
+                    // Wait for image to load
+                    albumImg.onload = doPosition;
+                    albumImg.onerror = doPosition;
+                }
+            } else {
+                albumImg.style.display = 'none';
+                doPosition();
+            }
+
+            // Safety timeout - position after 300ms regardless
+            setTimeout(doPosition, 300);
         }
 
         function closeSongDetail() {
