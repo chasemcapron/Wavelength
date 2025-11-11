@@ -693,7 +693,9 @@ ${finalContext.recommendations.map((r, i) =>
         albumCover: r.albumCover,
         albumName: r.albumName,
         spotifyLink: r.uri,
-        previewUrl: r.previewUrl
+        previewUrl: r.previewUrl,
+        danceability: r.danceability,
+        mood: r.mood
       }))
     });
 
