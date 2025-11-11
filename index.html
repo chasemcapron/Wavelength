@@ -27,8 +27,6 @@
         /* Prevent scrolling when modal is open */
         body.modal-open {
             overflow: hidden;
-            position: fixed;
-            width: 100%;
         }
 
         /* Animated wireframe wave background */
@@ -860,7 +858,6 @@
             align-items: center;
             justify-content: center;
             padding: 20px;
-            overflow-y: auto;
         }
 
         .song-detail-modal.active {
@@ -876,6 +873,12 @@
             overflow-y: auto;
             animation: modalSlideUp 0.3s ease;
             margin: auto;
+        }
+
+        @media (max-width: 768px) {
+            .song-detail-content {
+                max-width: 340px;
+            }
         }
 
         @keyframes modalSlideUp {
