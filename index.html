@@ -884,31 +884,19 @@
 
         @media (max-width: 768px) {
             .song-detail-modal {
-                align-items: flex-end;
+                align-items: flex-start;
                 justify-content: center;
                 padding: 0;
             }
 
             .song-detail-content {
-                max-width: 100%;
-                max-height: 85vh;
-                width: 100%;
+                max-width: 90%;
+                width: 90%;
                 margin: 0;
-                border-radius: 20px 20px 0 0;
-                animation: slideUpFromBottom 0.3s ease-out;
-            }
-
-            .song-detail-header {
-                border-radius: 20px 20px 0 0;
-            }
-
-            @keyframes slideUpFromBottom {
-                from {
-                    transform: translateY(100%);
-                }
-                to {
-                    transform: translateY(0);
-                }
+                border-radius: 12px;
+                animation: none;
+                position: absolute;
+                /* Position will be set by JavaScript */
             }
         }
 
@@ -1508,10 +1496,49 @@
 
         // Song detail modal functionality
         let songExplanations = {}; // Store explanations by index
+        let currentModalIndex = null;
+
+        function positionModal() {
+            const modal = document.getElementById('songDetailModal');
+            const modalContent = document.getElementById('songDetailModal').querySelector('.song-detail-content');
+
+            if (!modal.classList.contains('active')) return;
+
+            // Only apply positioning on mobile
+            if (window.innerWidth > 768) return;
+
+            // Wait for next frame to ensure DOM is rendered
+            requestAnimationFrame(() => {
+                const modalHeight = modalContent.offsetHeight;
+                const viewportHeight = window.visualViewport?.height || window.innerHeight;
+                const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                const docHeight = document.documentElement.scrollHeight;
+
+                // Calculate centered position in current viewport
+                let modalTop = scrollTop + (viewportHeight / 2) - (modalHeight / 2);
+
+                // Bounds checking
+                const minTop = scrollTop + 20; // 20px from top of viewport
+                const maxTop = Math.min(
+                    scrollTop + viewportHeight - modalHeight - 20, // 20px from bottom of viewport
+                    docHeight - modalHeight - 20 // 20px from bottom of document
+                );
+
+                modalTop = Math.max(minTop, Math.min(maxTop, modalTop));
+
+                // Apply positioning
+                modalContent.style.top = `${modalTop}px`;
+                modalContent.style.left = '50%';
+                modalContent.style.transform = 'translateX(-50%)';
+                modalContent.style.maxHeight = `${Math.min(viewportHeight - 40, modalHeight)}px`;
+            });
+        }
 
         function showSongDetail(index) {
             const track = currentRecommendations[index];
             if (!track) return;
+
+            currentModalIndex = index;
 
             const modal = document.getElementById('songDetailModal');
             const albumImg = document.getElementById('songDetailAlbum');
@@ -1544,13 +1571,28 @@
             // Prevent body scroll and show modal
             document.body.classList.add('modal-open');
             modal.classList.add('active');
+
+            // Position modal in viewport
+            positionModal();
         }
 
         function closeSongDetail() {
             const modal = document.getElementById('songDetailModal');
             modal.classList.remove('active');
             document.body.classList.remove('modal-open');
+            currentModalIndex = null;
         }
+
+        // Handle window resize (rotation, keyboard, etc)
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                if (currentModalIndex !== null) {
+                    positionModal();
+                }
+            }, 100);
+        });
 
         // Close modal when clicking outside
         document.addEventListener('click', (e) => {
