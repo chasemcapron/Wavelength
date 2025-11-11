@@ -202,7 +202,7 @@ async function searchSpotifyTrack(songName, artistName) {
 
   // Score each track: track name match (50%) + artist match (40%) + popularity (10%)
   const scoredTracks = data.tracks.items.map(track => {
-    const trackScore = trackNameMatchScore(track.name, trackName);
+    const trackScore = trackNameMatchScore(track.name, songName);
     const artistScore = artistMatchScore(track.artists[0].name, artistName);
     const popularityScore = track.popularity;
 
