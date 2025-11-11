@@ -421,17 +421,41 @@ app.post('/api/explain', async (req, res) => {
       }
     }
 
-    // If all retries failed, return a music-based fallback
+    // If all retries failed, return a music-based fallback with variety
     const isSameArtist = recommendation.artist.toLowerCase() === seedSong.artist.toLowerCase();
 
     // Build smarter fallback using metadata
     let fallback;
     if (isSameArtist) {
-      fallback = `More great music from ${recommendation.artist}`;
-    } else if (recommendation.albumName && recommendation.albumName !== 'Unknown Album') {
-      fallback = `From "${recommendation.albumName}"`;
+      const sameArtistVariations = [
+        `Another hit from ${recommendation.artist}`,
+        `More great music from ${recommendation.artist}`,
+        `${recommendation.artist}'s signature sound`,
+        `Another track by ${recommendation.artist}`
+      ];
+      fallback = sameArtistVariations[Math.floor(Math.random() * sameArtistVariations.length)];
     } else {
-      fallback = 'Similar musical style and vibe';
+      // Use multiple data points for richer fallbacks
+      const hasAlbum = recommendation.albumName && recommendation.albumName !== 'Unknown Album';
+
+      const variations = [];
+
+      if (hasAlbum) {
+        variations.push(`From the album "${recommendation.albumName}"`);
+        variations.push(`${recommendation.artist}'s comparable style`);
+        variations.push(`Featured on "${recommendation.albumName}"`);
+      } else {
+        variations.push(`${recommendation.artist} brings similar energy`);
+        variations.push(`Comparable style by ${recommendation.artist}`);
+      }
+
+      // Always add generic options for more variety
+      variations.push('Similar musical style and energy');
+      variations.push('Shares the same wavelength');
+      variations.push('Comparable mood and tempo');
+      variations.push('Similar vibes and atmosphere');
+
+      fallback = variations[Math.floor(Math.random() * variations.length)];
     }
 
     console.error('All Gemini attempts failed, using fallback');
