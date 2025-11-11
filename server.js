@@ -213,6 +213,24 @@ async function getSpotifyTrack(trackId) {
   return await response.json();
 }
 
+// Helper function to get descriptive keywords for scores
+function getScoreKeyword(score, type) {
+  if (type === 'danceability') {
+    if (score >= 9) return 'High-energy';
+    if (score >= 7) return 'Energetic';
+    if (score >= 5) return 'Moderate';
+    if (score >= 3) return 'Relaxed';
+    return 'Laid-back';
+  } else if (type === 'mood') {
+    if (score >= 9) return 'Euphoric';
+    if (score >= 7) return 'Upbeat';
+    if (score >= 5) return 'Balanced';
+    if (score >= 3) return 'Subdued';
+    return 'Melancholic';
+  }
+  return '';
+}
+
 // Generate heuristic danceability and mood scores based on track metadata
 // Since Spotify's audio features API requires OAuth, we use smart heuristics instead
 function getHeuristicAudioFeatures(trackId, trackName, artistName, popularity) {
@@ -485,11 +503,15 @@ app.post('/api/explain', async (req, res) => {
       // Only append if not already present (cached explanations from before this update)
       if (!explanation.includes('Danceability:') && !explanation.includes('Mood:')) {
         if (hasDanceability && hasMood) {
-          explanation += ` (Danceability: ${recommendation.danceability}/10, Mood: ${recommendation.mood}/10)`;
+          const danceKeyword = getScoreKeyword(recommendation.danceability, 'danceability');
+          const moodKeyword = getScoreKeyword(recommendation.mood, 'mood');
+          explanation += ` (${danceKeyword} ${recommendation.danceability}/10, ${moodKeyword} ${recommendation.mood}/10)`;
         } else if (hasDanceability) {
-          explanation += ` (Danceability: ${recommendation.danceability}/10)`;
+          const danceKeyword = getScoreKeyword(recommendation.danceability, 'danceability');
+          explanation += ` (${danceKeyword} ${recommendation.danceability}/10)`;
         } else if (hasMood) {
-          explanation += ` (Mood: ${recommendation.mood}/10)`;
+          const moodKeyword = getScoreKeyword(recommendation.mood, 'mood');
+          explanation += ` (${moodKeyword} ${recommendation.mood}/10)`;
         }
       }
 
@@ -505,11 +527,15 @@ app.post('/api/explain', async (req, res) => {
       const hasMood = recommendation.mood !== null && recommendation.mood !== undefined;
 
       if (hasDanceability && hasMood) {
-        explanation += ` (Danceability: ${recommendation.danceability}/10, Mood: ${recommendation.mood}/10)`;
+        const danceKeyword = getScoreKeyword(recommendation.danceability, 'danceability');
+        const moodKeyword = getScoreKeyword(recommendation.mood, 'mood');
+        explanation += ` (${danceKeyword} ${recommendation.danceability}/10, ${moodKeyword} ${recommendation.mood}/10)`;
       } else if (hasDanceability) {
-        explanation += ` (Danceability: ${recommendation.danceability}/10)`;
+        const danceKeyword = getScoreKeyword(recommendation.danceability, 'danceability');
+        explanation += ` (${danceKeyword} ${recommendation.danceability}/10)`;
       } else if (hasMood) {
-        explanation += ` (Mood: ${recommendation.mood}/10)`;
+        const moodKeyword = getScoreKeyword(recommendation.mood, 'mood');
+        explanation += ` (${moodKeyword} ${recommendation.mood}/10)`;
       }
 
       return res.json({ explanation });
@@ -564,11 +590,15 @@ app.post('/api/explain', async (req, res) => {
           const hasMood = recommendation.mood !== null && recommendation.mood !== undefined;
 
           if (hasDanceability && hasMood) {
-            explanation += ` (Danceability: ${recommendation.danceability}/10, Mood: ${recommendation.mood}/10)`;
+            const danceKeyword = getScoreKeyword(recommendation.danceability, 'danceability');
+            const moodKeyword = getScoreKeyword(recommendation.mood, 'mood');
+            explanation += ` (${danceKeyword} ${recommendation.danceability}/10, ${moodKeyword} ${recommendation.mood}/10)`;
           } else if (hasDanceability) {
-            explanation += ` (Danceability: ${recommendation.danceability}/10)`;
+            const danceKeyword = getScoreKeyword(recommendation.danceability, 'danceability');
+            explanation += ` (${danceKeyword} ${recommendation.danceability}/10)`;
           } else if (hasMood) {
-            explanation += ` (Mood: ${recommendation.mood}/10)`;
+            const moodKeyword = getScoreKeyword(recommendation.mood, 'mood');
+            explanation += ` (${moodKeyword} ${recommendation.mood}/10)`;
           }
 
           // Only cache successful explanations
@@ -604,11 +634,15 @@ app.post('/api/explain', async (req, res) => {
 
       // ALWAYS append danceability and mood scores
       if (hasDanceability && hasMood) {
-        fallback += ` (Danceability: ${recommendation.danceability}/10, Mood: ${recommendation.mood}/10)`;
+        const danceKeyword = getScoreKeyword(recommendation.danceability, 'danceability');
+        const moodKeyword = getScoreKeyword(recommendation.mood, 'mood');
+        fallback += ` (${danceKeyword} ${recommendation.danceability}/10, ${moodKeyword} ${recommendation.mood}/10)`;
       } else if (hasDanceability) {
-        fallback += ` (Danceability: ${recommendation.danceability}/10)`;
+        const danceKeyword = getScoreKeyword(recommendation.danceability, 'danceability');
+        fallback += ` (${danceKeyword} ${recommendation.danceability}/10)`;
       } else if (hasMood) {
-        fallback += ` (Mood: ${recommendation.mood}/10)`;
+        const moodKeyword = getScoreKeyword(recommendation.mood, 'mood');
+        fallback += ` (${moodKeyword} ${recommendation.mood}/10)`;
       }
     } else {
       // Use multiple data points for richer fallbacks
@@ -635,11 +669,15 @@ app.post('/api/explain', async (req, res) => {
 
       // ALWAYS append danceability and mood scores to the fallback
       if (hasDanceability && hasMood) {
-        fallback += ` (Danceability: ${recommendation.danceability}/10, Mood: ${recommendation.mood}/10)`;
+        const danceKeyword = getScoreKeyword(recommendation.danceability, 'danceability');
+        const moodKeyword = getScoreKeyword(recommendation.mood, 'mood');
+        fallback += ` (${danceKeyword} ${recommendation.danceability}/10, ${moodKeyword} ${recommendation.mood}/10)`;
       } else if (hasDanceability) {
-        fallback += ` (Danceability: ${recommendation.danceability}/10)`;
+        const danceKeyword = getScoreKeyword(recommendation.danceability, 'danceability');
+        fallback += ` (${danceKeyword} ${recommendation.danceability}/10)`;
       } else if (hasMood) {
-        fallback += ` (Mood: ${recommendation.mood}/10)`;
+        const moodKeyword = getScoreKeyword(recommendation.mood, 'mood');
+        fallback += ` (${moodKeyword} ${recommendation.mood}/10)`;
       }
     }
 
