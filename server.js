@@ -471,13 +471,15 @@ async function enrichWithSpotify(lastfmTracks, seedArtist) {
 async function getRecommendations(seedSong) {
   console.log(`--- Getting recommendations for: "${seedSong.name}" by ${seedSong.artist} ---`);
   console.log('Seed song data:', seedSong); // Debug log
-  console.time('Total recommendation time');
+
+  const requestId = Date.now() + Math.random().toString(36).substring(7);
+  console.time(`Total recommendation time [${requestId}]`);
 
   // Get similar tracks from Last.fm
-  console.time('Last.fm API call');
+  console.time(`Last.fm API call [${requestId}]`);
   const lastfmSimilar = await getLastfmSimilarTracks(seedSong.name, seedSong.artist);
-  console.timeEnd('Last.fm API call');
-  
+  console.timeEnd(`Last.fm API call [${requestId}]`);
+
   if (!lastfmSimilar || lastfmSimilar.length === 0) {
     throw new Error('No similar tracks found on Last.fm.');
   }
@@ -485,9 +487,9 @@ async function getRecommendations(seedSong) {
   console.log(`Last.fm returned ${lastfmSimilar.length} similar tracks`);
 
   // Enrich with Spotify data
-  console.time('Spotify enrichment');
+  console.time(`Spotify enrichment [${requestId}]`);
   const recommendations = await enrichWithSpotify(lastfmSimilar, seedSong.artist);
-  console.timeEnd('Spotify enrichment');
+  console.timeEnd(`Spotify enrichment [${requestId}]`);
 
   if (recommendations.length === 0) {
     throw new Error('Could not find Spotify links for similar tracks.');
@@ -495,7 +497,7 @@ async function getRecommendations(seedSong) {
 
   console.log(`Successfully enriched ${recommendations.length} recommendations (${recommendations.filter(r => r.artist.toLowerCase() === seedSong.artist.toLowerCase()).length} same artist, ${recommendations.filter(r => r.artist.toLowerCase() !== seedSong.artist.toLowerCase()).length} different artists)`);
 
-  console.timeEnd('Total recommendation time');
+  console.timeEnd(`Total recommendation time [${requestId}]`);
 
   return {
     seedQuery: {
