@@ -301,8 +301,8 @@ async function enrichWithSpotify(lastfmTracks, seedArtist) {
           matchScore: parseFloat(track.match || 0),
           isSameArtist: track.artist.name.toLowerCase() === seedArtist.toLowerCase(),
           previewUrl: spotifyTrack.preview_url || null,
-          danceability: audioFeatures?.danceability || null,
-          mood: audioFeatures?.mood || null
+          danceability: audioFeatures?.danceability ?? null,
+          mood: audioFeatures?.mood ?? null
         };
       }
       return null;
