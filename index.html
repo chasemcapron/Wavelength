@@ -758,6 +758,186 @@
                 opacity: 1;
             }
         }
+
+        /* Mobile-specific styles */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px 15px;
+            }
+
+            /* Smaller, simpler keycaps on mobile */
+            .keycap-container {
+                gap: 8px;
+                padding: 20px 0;
+            }
+
+            .keycap {
+                width: 45px;
+                height: 45px;
+                font-size: 20px;
+                box-shadow:
+                    0 2px 0 #d0d0d0,
+                    0 4px 0 #b0b0b0,
+                    0 6px 0 #a0a0a0,
+                    0 8px 10px rgba(0, 0, 0, 0.3),
+                    inset 0 2px 1px #ffffff;
+            }
+
+            .keycap::after {
+                display: none; /* Hide stem on mobile */
+            }
+
+            .subtitle {
+                font-size: 14px;
+            }
+
+            /* Stack song buttons vertically on mobile */
+            .track {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .track-info {
+                width: 100%;
+            }
+
+            .track-links {
+                width: 100%;
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .btn-link {
+                width: 100%;
+                text-align: center;
+            }
+
+            /* Make track title clickable indicator */
+            .track-title {
+                cursor: pointer;
+                text-decoration: underline;
+                text-decoration-color: rgba(29, 185, 84, 0.3);
+                text-decoration-thickness: 2px;
+            }
+
+            /* Hide hover tooltips on mobile */
+            .explanation-tooltip {
+                display: none !important;
+            }
+
+            /* Playlist actions button */
+            .btn-save-playlist {
+                padding: 12px 24px;
+                font-size: 13px;
+            }
+        }
+
+        /* Song detail modal (mobile) */
+        .song-detail-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 3000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .song-detail-modal.active {
+            display: flex;
+        }
+
+        .song-detail-content {
+            background: #282828;
+            border-radius: 12px;
+            max-width: 400px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            animation: modalSlideUp 0.3s ease;
+        }
+
+        @keyframes modalSlideUp {
+            from {
+                transform: translateY(100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .song-detail-header {
+            position: relative;
+            background: linear-gradient(135deg, #1DB954, #1ed760);
+            border-radius: 12px 12px 0 0;
+            padding: 0;
+        }
+
+        .song-detail-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1;
+        }
+
+        .song-detail-album {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 12px 12px 0 0;
+        }
+
+        .song-detail-body {
+            padding: 20px;
+        }
+
+        .song-detail-track {
+            font-size: 20px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 8px;
+        }
+
+        .song-detail-artist {
+            font-size: 16px;
+            color: #b3b3b3;
+            margin-bottom: 16px;
+        }
+
+        .song-detail-album-name {
+            font-size: 13px;
+            color: #1DB954;
+            margin-bottom: 12px;
+            font-style: italic;
+        }
+
+        .song-detail-explanation {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #fff;
+            padding: 16px;
+            background: rgba(29, 185, 84, 0.1);
+            border-radius: 8px;
+            border-left: 3px solid #1DB954;
+        }
     </style>
 </head>
 <body>
@@ -834,6 +1014,22 @@
         </div>
 
         <div class="notification" id="notification"></div>
+
+        <!-- Song detail modal for mobile -->
+        <div class="song-detail-modal" id="songDetailModal">
+            <div class="song-detail-content">
+                <div class="song-detail-header">
+                    <button class="song-detail-close" onclick="closeSongDetail()">×</button>
+                    <img class="song-detail-album" id="songDetailAlbum" src="" alt="Album cover">
+                </div>
+                <div class="song-detail-body">
+                    <div class="song-detail-track" id="songDetailTrack"></div>
+                    <div class="song-detail-artist" id="songDetailArtist"></div>
+                    <div class="song-detail-album-name" id="songDetailAlbumName"></div>
+                    <div class="song-detail-explanation" id="songDetailExplanation">Loading...</div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -906,6 +1102,9 @@
             // Show results container
             results.classList.add('active');
 
+            // Clear previous explanations
+            songExplanations = {};
+
             // Store seed song for explanations
             if (data.recommendations && data.recommendations.length > 0) {
                 // Use the seedSong data from the API response
@@ -970,7 +1169,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="track-info">
+                        <div class="track-info" onclick="showSongDetail(${index})">
                             <div class="track-title">${index + 1}. ${escapeHtml(track.title)}</div>
                             <div class="track-artist">${escapeHtml(track.artist)}</div>
                         </div>
@@ -980,7 +1179,7 @@
                             <a href="${track.url}" class="btn-link" target="_blank" rel="noopener">Web Player</a>
                         </div>
                     `;
-                    
+
                     recommendations.appendChild(trackEl);
                 });
 
@@ -1002,9 +1201,11 @@
         async function fetchExplanation(track, index) {
             const tooltip = document.getElementById(`tooltip-${index}`);
             const explanationEl = tooltip.querySelector('.tooltip-explanation');
-            
+
             if (!currentSeedSong) {
-                explanationEl.textContent = 'Similar vibe and energy';
+                const fallback = 'Similar vibe and energy';
+                explanationEl.textContent = fallback;
+                songExplanations[index] = fallback; // Store for modal
                 return;
             }
 
@@ -1023,10 +1224,14 @@
                 });
 
                 const data = await response.json();
-                explanationEl.textContent = data.explanation || 'Similar style and mood';
+                const explanation = data.explanation || 'Similar style and mood';
+                explanationEl.textContent = explanation;
+                songExplanations[index] = explanation; // Store for modal
                 tooltip.classList.remove('loading');
             } catch (error) {
-                explanationEl.textContent = 'Similar style and mood';
+                const fallback = 'Similar style and mood';
+                explanationEl.textContent = fallback;
+                songExplanations[index] = fallback; // Store for modal
                 tooltip.classList.remove('loading');
             }
         }
@@ -1243,6 +1448,57 @@
                         createPlaylist();
                     }
                 });
+            }
+        });
+
+        // Song detail modal functionality
+        let songExplanations = {}; // Store explanations by index
+
+        function showSongDetail(index) {
+            const track = currentRecommendations[index];
+            if (!track) return;
+
+            const modal = document.getElementById('songDetailModal');
+            const albumImg = document.getElementById('songDetailAlbum');
+            const trackName = document.getElementById('songDetailTrack');
+            const artistName = document.getElementById('songDetailArtist');
+            const albumName = document.getElementById('songDetailAlbumName');
+            const explanation = document.getElementById('songDetailExplanation');
+
+            // Set track info
+            trackName.textContent = track.title;
+            artistName.textContent = track.artist;
+            albumName.textContent = track.albumName || 'Unknown Album';
+
+            // Set album cover
+            if (track.albumCover) {
+                albumImg.src = track.albumCover;
+                albumImg.style.display = 'block';
+            } else {
+                albumImg.style.display = 'none';
+            }
+
+            // Show explanation (use cached if available)
+            if (songExplanations[index]) {
+                explanation.textContent = songExplanations[index];
+            } else {
+                explanation.textContent = 'Loading explanation...';
+                // Fetch will populate it when ready
+            }
+
+            modal.classList.add('active');
+        }
+
+        function closeSongDetail() {
+            const modal = document.getElementById('songDetailModal');
+            modal.classList.remove('active');
+        }
+
+        // Close modal when clicking outside
+        document.addEventListener('click', (e) => {
+            const modal = document.getElementById('songDetailModal');
+            if (e.target === modal) {
+                closeSongDetail();
             }
         });
     </script>
