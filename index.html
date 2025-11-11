@@ -1129,17 +1129,25 @@
             // Check if authenticated
             checkAuthStatus().then(authenticated => {
                 if (!authenticated) {
-                    // Open Spotify login in popup
+                    // Open Spotify login in popup using absolute URL
                     const width = 500;
                     const height = 700;
                     const left = (window.screen.width / 2) - (width / 2);
                     const top = (window.screen.height / 2) - (height / 2);
 
-                    window.open(
-                        '/auth/login',
+                    // Use absolute URL to ensure correct server
+                    const loginUrl = `${window.location.origin}/auth/login`;
+                    console.log('Opening OAuth popup:', loginUrl);
+
+                    const popup = window.open(
+                        loginUrl,
                         'Spotify Login',
                         `width=${width},height=${height},left=${left},top=${top}`
                     );
+
+                    if (!popup) {
+                        showNotification('Please allow popups to authenticate', false);
+                    }
                 } else {
                     // Show playlist name modal
                     document.getElementById('playlistModal').classList.add('active');

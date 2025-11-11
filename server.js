@@ -579,12 +579,32 @@ app.get('/api/cache-stats', (req, res) => {
   });
 });
 
+// Debug endpoint to verify OAuth setup
+app.get('/api/debug/oauth', (req, res) => {
+  res.json({
+    redirectUri: REDIRECT_URI,
+    clientIdConfigured: !!SPOTIFY_CLIENT_ID,
+    clientSecretConfigured: !!SPOTIFY_CLIENT_SECRET,
+    endpoints: {
+      login: '/auth/login',
+      callback: '/auth/callback',
+      authStatus: '/api/auth-status',
+      createPlaylist: '/api/create-playlist'
+    }
+  });
+});
+
 // Spotify OAuth - Step 1: Redirect user to Spotify login
 app.get('/auth/login', (req, res) => {
+  console.log('🔐 OAuth login initiated');
+  console.log('Redirect URI:', REDIRECT_URI);
+  console.log('Client ID configured:', !!SPOTIFY_CLIENT_ID);
+
   const scope = 'playlist-modify-public playlist-modify-private';
   const authUrl = `https://accounts.spotify.com/authorize?` +
     `response_type=code&client_id=${SPOTIFY_CLIENT_ID}&scope=${encodeURIComponent(scope)}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
 
+  console.log('Redirecting to Spotify:', authUrl.substring(0, 100) + '...');
   res.redirect(authUrl);
 });
 
