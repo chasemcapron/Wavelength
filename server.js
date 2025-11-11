@@ -223,17 +223,23 @@ async function getAudioFeatures(trackId) {
     });
 
     if (!response.ok) {
+      console.log(`⚠️ Audio features API error: ${response.status}`);
       return null;
     }
 
     const features = await response.json();
 
     // Convert to 1-10 scale and return relevant features
-    return {
-      danceability: features.energy ? Math.round(features.energy * 10) : null, // Using energy but calling it danceability
-      mood: features.valence ? Math.round(features.valence * 10) : null
+    // Important: Use !== undefined check instead of truthiness to handle 0 values
+    const result = {
+      danceability: (features.energy !== undefined && features.energy !== null) ? Math.round(features.energy * 10) : null,
+      mood: (features.valence !== undefined && features.valence !== null) ? Math.round(features.valence * 10) : null
     };
+
+    console.log(`🎵 Audio features for ${trackId}: Danceability=${result.danceability}, Mood=${result.mood}`);
+    return result;
   } catch (error) {
+    console.log(`⚠️ Audio features fetch error:`, error.message);
     return null;
   }
 }

@@ -77,6 +77,7 @@
             .hero {
                 margin-bottom: 20px;
                 min-height: auto;
+                padding-top: 10px;
             }
         }
 
@@ -774,7 +775,7 @@
         /* Mobile-specific styles */
         @media (max-width: 768px) {
             .container {
-                padding: 20px 15px;
+                padding: 30px 15px 20px 15px;
             }
 
             /* Smaller, simpler keycaps on mobile */
@@ -863,6 +864,7 @@
             align-items: center;
             justify-content: center;
             padding: 20px;
+            overflow-y: auto;
         }
 
         .song-detail-modal.active {
@@ -877,12 +879,19 @@
             max-height: 80vh;
             overflow-y: auto;
             animation: modalSlideUp 0.3s ease;
-            margin: auto;
+            position: relative;
         }
 
         @media (max-width: 768px) {
+            .song-detail-modal {
+                align-items: center;
+                padding: 40px 20px;
+            }
+
             .song-detail-content {
                 max-width: 340px;
+                max-height: 90vh;
+                margin: auto 0;
             }
         }
 
