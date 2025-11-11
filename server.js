@@ -218,16 +218,25 @@ async function getAudioFeatures(trackId) {
   const url = `https://api.spotify.com/v1/audio-features/${trackId}`;
 
   try {
+    console.log(`🔍 Fetching audio features for track: ${trackId}`);
     const response = await fetch(url, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
     if (!response.ok) {
-      console.log(`⚠️ Audio features API error: ${response.status}`);
+      const errorText = await response.text();
+      console.log(`⚠️ Audio features API error: ${response.status} - ${errorText}`);
       return null;
     }
 
     const features = await response.json();
+    console.log(`📊 Raw Spotify audio features:`, JSON.stringify(features));
+
+    // Check if we got valid data
+    if (!features || typeof features !== 'object') {
+      console.log(`⚠️ Invalid audio features response`);
+      return null;
+    }
 
     // Convert to 1-10 scale and return relevant features
     // Important: Use !== undefined check instead of truthiness to handle 0 values
@@ -236,7 +245,7 @@ async function getAudioFeatures(trackId) {
       mood: (features.valence !== undefined && features.valence !== null) ? Math.round(features.valence * 10) : null
     };
 
-    console.log(`🎵 Audio features for ${trackId}: Danceability=${result.danceability}, Mood=${result.mood}`);
+    console.log(`🎵 Converted audio features: Danceability=${result.danceability}/10 (from energy=${features.energy}), Mood=${result.mood}/10 (from valence=${features.valence})`);
     return result;
   } catch (error) {
     console.log(`⚠️ Audio features fetch error:`, error.message);

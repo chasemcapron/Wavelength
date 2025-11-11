@@ -884,16 +884,30 @@
 
         @media (max-width: 768px) {
             .song-detail-modal {
-                align-items: center;
-                justify-content: center;
-                padding: 20px;
+                padding: 0;
+                align-items: stretch;
+                justify-content: stretch;
             }
 
             .song-detail-content {
-                max-width: 340px;
-                max-height: 90vh;
+                max-width: 100%;
+                max-height: 100vh;
+                width: 100%;
+                height: 100%;
                 margin: 0;
+                border-radius: 0;
                 animation: none;
+            }
+
+            .song-detail-header {
+                border-radius: 0;
+            }
+
+            .song-detail-album {
+                max-width: 315px;
+                margin: 0 auto;
+                display: block;
+                border-radius: 0;
             }
         }
 
