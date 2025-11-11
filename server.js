@@ -21,6 +21,10 @@ let spotifyToken = {
   expiresAt: 0,
 };
 
+// Session management for user authentication
+const userSessions = new Map(); // key: sessionId, value: { accessToken, expiresAt, userId }
+const REDIRECT_URI = process.env.REDIRECT_URI || 'http://localhost:3000/auth/callback';
+
 // CACHE SYSTEM - Stores recommendations and explanations
 const recommendationsCache = new Map(); // key: "trackname|artistname"
 const explanationsCache = new Map(); // key: "seedSong|recommendationSong"
@@ -549,6 +553,159 @@ app.get('/api/cache-stats', (req, res) => {
     },
     message: 'Cache helps reduce API calls during demos!'
   });
+});
+
+// Spotify OAuth - Step 1: Redirect user to Spotify login
+app.get('/auth/login', (req, res) => {
+  const scope = 'playlist-modify-public playlist-modify-private';
+  const authUrl = `https://accounts.spotify.com/authorize?` +
+    `response_type=code&client_id=${SPOTIFY_CLIENT_ID}&scope=${encodeURIComponent(scope)}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
+
+  res.redirect(authUrl);
+});
+
+// Spotify OAuth - Step 2: Handle callback and exchange code for token
+app.get('/auth/callback', async (req, res) => {
+  const code = req.query.code;
+
+  if (!code) {
+    return res.send('<script>window.close();</script>');
+  }
+
+  try {
+    const authBuffer = Buffer.from(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`).toString('base64');
+
+    const bodyParams = new URLSearchParams();
+    bodyParams.append('grant_type', 'authorization_code');
+    bodyParams.append('code', code);
+    bodyParams.append('redirect_uri', REDIRECT_URI);
+
+    const response = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${authBuffer}`,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: bodyParams
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to exchange code for token');
+    }
+
+    const data = await response.json();
+
+    // Get user profile to get user ID
+    const profileResponse = await fetch('https://api.spotify.com/v1/me', {
+      headers: { 'Authorization': `Bearer ${data.access_token}` }
+    });
+    const profile = await profileResponse.json();
+
+    // Generate session ID and store
+    const sessionId = Math.random().toString(36).substring(2);
+    userSessions.set(sessionId, {
+      accessToken: data.access_token,
+      expiresAt: Date.now() + (data.expires_in * 1000),
+      userId: profile.id
+    });
+
+    // Send session ID to client via cookie and close popup
+    res.send(`
+      <script>
+        localStorage.setItem('wavelength_session', '${sessionId}');
+        window.opener.postMessage({ type: 'auth-success', sessionId: '${sessionId}' }, '*');
+        window.close();
+      </script>
+    `);
+  } catch (error) {
+    console.error('OAuth error:', error);
+    res.send('<script>alert("Authentication failed"); window.close();</script>');
+  }
+});
+
+// Check auth status
+app.get('/api/auth-status', (req, res) => {
+  const sessionId = req.headers['x-session-id'];
+
+  if (!sessionId) {
+    return res.json({ authenticated: false });
+  }
+
+  const session = userSessions.get(sessionId);
+
+  if (!session || session.expiresAt < Date.now()) {
+    if (session) userSessions.delete(sessionId);
+    return res.json({ authenticated: false });
+  }
+
+  res.json({ authenticated: true, userId: session.userId });
+});
+
+// Create playlist with recommendations
+app.post('/api/create-playlist', async (req, res) => {
+  const sessionId = req.headers['x-session-id'];
+  const { playlistName, trackUris } = req.body;
+
+  if (!sessionId) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+
+  const session = userSessions.get(sessionId);
+
+  if (!session || session.expiresAt < Date.now()) {
+    if (session) userSessions.delete(sessionId);
+    return res.status(401).json({ error: 'Session expired' });
+  }
+
+  if (!playlistName || !trackUris || !Array.isArray(trackUris)) {
+    return res.status(400).json({ error: 'Missing playlist name or track URIs' });
+  }
+
+  try {
+    // Create playlist
+    const createResponse = await fetch(`https://api.spotify.com/v1/users/${session.userId}/playlists`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${session.accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        name: playlistName,
+        description: 'Created with Wavelength - Music Discovery',
+        public: false
+      })
+    });
+
+    if (!createResponse.ok) {
+      throw new Error('Failed to create playlist');
+    }
+
+    const playlist = await createResponse.json();
+
+    // Add tracks to playlist
+    const addTracksResponse = await fetch(`https://api.spotify.com/v1/playlists/${playlist.id}/tracks`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${session.accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ uris: trackUris })
+    });
+
+    if (!addTracksResponse.ok) {
+      throw new Error('Failed to add tracks to playlist');
+    }
+
+    res.json({
+      success: true,
+      playlistId: playlist.id,
+      playlistUrl: playlist.external_urls.spotify
+    });
+
+  } catch (error) {
+    console.error('Playlist creation error:', error);
+    res.status(500).json({ error: 'Failed to create playlist' });
+  }
 });
 
 // Serve index.html at root
