@@ -744,8 +744,9 @@
 
         .notification {
             position: fixed;
-            top: 20px;
-            right: 20px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             background: #1DB954;
             color: #000;
             padding: 16px 24px;
@@ -754,6 +755,8 @@
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
             z-index: 2000;
             display: none;
+            max-width: 90%;
+            text-align: center;
         }
 
         .notification.active {
@@ -763,11 +766,11 @@
 
         @keyframes slideIn {
             from {
-                transform: translateX(400px);
+                transform: translate(-50%, -50%) scale(0.8);
                 opacity: 0;
             }
             to {
-                transform: translateX(0);
+                transform: translate(-50%, -50%) scale(1);
                 opacity: 1;
             }
         }
@@ -1121,11 +1124,14 @@
                 const data = await response.json();
                 console.log('API Response:', data); // Debug log
                 console.log('Seed song data:', data.seedSong); // Debug seed song
-                
+
                 // Store full seed song data
                 currentSeedSongData = data.seedSong || null;
                 console.log('Stored seed song data:', currentSeedSongData);
-                
+
+                // Store full response data for OAuth restoration
+                window.lastResponseData = data;
+
                 displayResults(data);
 
             } catch (err) {
@@ -1354,6 +1360,7 @@
                 document.body.classList.add('modal-open');
                 document.getElementById('playlistModal').classList.add('active');
                 document.getElementById('playlistNameInput').focus();
+                positionPlaylistModal();
             }
         });
 
@@ -1384,9 +1391,9 @@
                         // Mobile: Use full-page redirect instead of popup (popups are blocked)
                         console.log('Mobile detected: Redirecting to OAuth page');
 
-                        // Save current recommendations to sessionStorage so we can restore them after auth
-                        if (currentRecommendations && currentRecommendations.length > 0) {
-                            sessionStorage.setItem('pendingRecommendations', JSON.stringify(currentRecommendations));
+                        // Save full response data to sessionStorage so we can restore everything after auth
+                        if (window.lastResponseData) {
+                            sessionStorage.setItem('pendingResponseData', JSON.stringify(window.lastResponseData));
                             sessionStorage.setItem('pendingPlaylist', 'true');
                         }
 
@@ -1416,14 +1423,62 @@
                     document.body.classList.add('modal-open');
                     document.getElementById('playlistModal').classList.add('active');
                     document.getElementById('playlistNameInput').focus();
+                    positionPlaylistModal();
                 }
             });
         }
 
+        function positionPlaylistModal() {
+            const modal = document.getElementById('playlistModal');
+            const modalContent = modal.querySelector('.modal-content');
+
+            if (!modal.classList.contains('active')) return;
+
+            // Only apply custom positioning on mobile
+            if (window.innerWidth > 768) {
+                // Desktop: use default flexbox centering
+                modalContent.style.position = '';
+                modalContent.style.top = '';
+                modalContent.style.left = '';
+                modalContent.style.transform = '';
+                return;
+            }
+
+            // Mobile: viewport-aware positioning
+            requestAnimationFrame(() => {
+                const modalHeight = modalContent.offsetHeight;
+                const viewportHeight = window.visualViewport?.height || window.innerHeight;
+                const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+
+                // Calculate centered position in current viewport
+                let modalTop = scrollTop + (viewportHeight / 2) - (modalHeight / 2);
+
+                // Bounds checking
+                const minTop = scrollTop + 20;
+                const maxTop = scrollTop + viewportHeight - modalHeight - 20;
+                modalTop = Math.max(minTop, Math.min(maxTop, modalTop));
+
+                // Apply positioning
+                modalContent.style.position = 'absolute';
+                modalContent.style.top = `${modalTop}px`;
+                modalContent.style.left = '50%';
+                modalContent.style.transform = 'translateX(-50%)';
+            });
+        }
+
         function closePlaylistModal() {
-            document.getElementById('playlistModal').classList.remove('active');
+            const modal = document.getElementById('playlistModal');
+            const modalContent = modal.querySelector('.modal-content');
+
+            modal.classList.remove('active');
             document.getElementById('playlistNameInput').value = '';
             document.body.classList.remove('modal-open');
+
+            // Reset positioning
+            modalContent.style.position = '';
+            modalContent.style.top = '';
+            modalContent.style.left = '';
+            modalContent.style.transform = '';
         }
 
         async function createPlaylist() {
@@ -1510,29 +1565,35 @@
 
             // Check if user just returned from OAuth (mobile redirect)
             const pendingPlaylist = sessionStorage.getItem('pendingPlaylist');
-            const pendingRecs = sessionStorage.getItem('pendingRecommendations');
+            const pendingData = sessionStorage.getItem('pendingResponseData');
 
-            if (pendingPlaylist === 'true' && pendingRecs) {
+            if (pendingPlaylist === 'true' && pendingData) {
                 console.log('Restored from OAuth redirect');
 
-                // Restore recommendations
+                // Restore full response data and re-render
                 try {
-                    currentRecommendations = JSON.parse(pendingRecs);
+                    const data = JSON.parse(pendingData);
+                    window.lastResponseData = data;
+                    currentSeedSongData = data.seedSong || null;
+
+                    // Re-render everything
+                    displayResults(data);
 
                     // Clear session storage
                     sessionStorage.removeItem('pendingPlaylist');
-                    sessionStorage.removeItem('pendingRecommendations');
+                    sessionStorage.removeItem('pendingResponseData');
 
-                    // Show playlist modal after auth
+                    // Show playlist modal after auth and rendering
                     setTimeout(() => {
                         document.body.classList.add('modal-open');
                         document.getElementById('playlistModal').classList.add('active');
                         document.getElementById('playlistNameInput').focus();
+                        positionPlaylistModal();
                     }, 500);
                 } catch (e) {
                     console.error('Failed to restore recommendations:', e);
                     sessionStorage.removeItem('pendingPlaylist');
-                    sessionStorage.removeItem('pendingRecommendations');
+                    sessionStorage.removeItem('pendingResponseData');
                 }
             }
         });
