@@ -161,16 +161,57 @@ async function searchSpotifyTrack(songName, artistName) {
     return 0;
   }
 
-  // Score each track: artist match (weighted 70%) + popularity (weighted 30%)
+  // Helper function to calculate track name similarity
+  function trackNameMatchScore(trackName, searchName) {
+    const trackNameLower = trackName.toLowerCase().trim();
+    const searchNameLower = searchName.toLowerCase().trim();
+
+    // Exact match = 100 points (highest priority!)
+    if (trackNameLower === searchNameLower) {
+      return 100;
+    }
+
+    // Very close match (differs only by punctuation/special chars)
+    const trackNameClean = trackNameLower.replace(/[^a-z0-9]/g, '');
+    const searchNameClean = searchNameLower.replace(/[^a-z0-9]/g, '');
+    if (trackNameClean === searchNameClean) {
+      return 95;
+    }
+
+    // Contains the full track name = 80 points
+    if (trackNameLower.includes(searchNameLower) || searchNameLower.includes(trackNameLower)) {
+      return 80;
+    }
+
+    // Starts with the track name = 60 points
+    if (trackNameLower.startsWith(searchNameLower) || searchNameLower.startsWith(trackNameLower)) {
+      return 60;
+    }
+
+    // Partial word match = 40 points
+    const searchWords = searchNameLower.split(/\s+/);
+    const trackWords = trackNameLower.split(/\s+/);
+    const matchingWords = searchWords.filter(word => trackWords.includes(word)).length;
+    if (matchingWords > 0) {
+      return 40 * (matchingWords / searchWords.length);
+    }
+
+    // No match = 0 points
+    return 0;
+  }
+
+  // Score each track: track name match (50%) + artist match (40%) + popularity (10%)
   const scoredTracks = data.tracks.items.map(track => {
+    const trackScore = trackNameMatchScore(track.name, trackName);
     const artistScore = artistMatchScore(track.artists[0].name, artistName);
     const popularityScore = track.popularity;
 
-    // Weighted score: artist match is more important than popularity
-    const totalScore = (artistScore * 0.7) + (popularityScore * 0.3);
+    // Weighted score: track name MOST important, then artist, then popularity
+    const totalScore = (trackScore * 0.5) + (artistScore * 0.4) + (popularityScore * 0.1);
 
     return {
       track,
+      trackScore,
       artistScore,
       popularityScore,
       totalScore
@@ -180,20 +221,27 @@ async function searchSpotifyTrack(songName, artistName) {
   // Sort by total score (descending)
   scoredTracks.sort((a, b) => b.totalScore - a.totalScore);
 
+  // Prioritize exact track name matches
+  const exactMatch = scoredTracks.find(item => item.trackScore === 100 && item.artistScore >= 80);
+  if (exactMatch) {
+    console.log(`✅ EXACT MATCH: "${exactMatch.track.name}" by ${exactMatch.track.artists[0].name} (track: ${exactMatch.trackScore}, artist: ${exactMatch.artistScore}, popularity: ${exactMatch.popularityScore})`);
+    return exactMatch.track;
+  }
+
   // Filter out tracks with very low popularity (< 20) unless they have perfect artist match
   const filtered = scoredTracks.filter(item =>
-    item.popularityScore >= 20 || item.artistScore === 100
+    item.popularityScore >= 20 || item.artistScore === 100 || item.trackScore >= 80
   );
 
   if (filtered.length === 0) {
     // If all tracks are filtered out, just use the best scoring one
     const topResult = scoredTracks[0].track;
-    console.log(`⚠️ All results filtered, using best match: "${topResult.name}" by ${topResult.artists[0].name} (score: ${scoredTracks[0].totalScore.toFixed(1)})`);
+    console.log(`⚠️ All results filtered, using best match: "${topResult.name}" by ${topResult.artists[0].name} (total score: ${scoredTracks[0].totalScore.toFixed(1)})`);
     return topResult;
   }
 
   const topResult = filtered[0].track;
-  console.log(`✅ Found: "${topResult.name}" by ${topResult.artists[0].name} (artist score: ${filtered[0].artistScore}, popularity: ${filtered[0].popularityScore}, total: ${filtered[0].totalScore.toFixed(1)})`);
+  console.log(`✅ Found: "${topResult.name}" by ${topResult.artists[0].name} (track score: ${filtered[0].trackScore}, artist score: ${filtered[0].artistScore}, popularity: ${filtered[0].popularityScore}, total: ${filtered[0].totalScore.toFixed(1)})`);
 
   return topResult;
 }

@@ -1377,24 +1377,39 @@
             // Check if authenticated
             checkAuthStatus().then(authenticated => {
                 if (!authenticated) {
-                    // Open Spotify login in popup using absolute URL
-                    const width = 500;
-                    const height = 700;
-                    const left = (window.screen.width / 2) - (width / 2);
-                    const top = (window.screen.height / 2) - (height / 2);
-
-                    // Use absolute URL to ensure correct server
                     const loginUrl = `${window.location.origin}/auth/login`;
-                    console.log('Opening OAuth popup:', loginUrl);
+                    const isMobile = window.innerWidth <= 768;
 
-                    const popup = window.open(
-                        loginUrl,
-                        'Spotify Login',
-                        `width=${width},height=${height},left=${left},top=${top}`
-                    );
+                    if (isMobile) {
+                        // Mobile: Use full-page redirect instead of popup (popups are blocked)
+                        console.log('Mobile detected: Redirecting to OAuth page');
 
-                    if (!popup) {
-                        showNotification('Please allow popups to authenticate', false);
+                        // Save current recommendations to sessionStorage so we can restore them after auth
+                        if (currentRecommendations && currentRecommendations.length > 0) {
+                            sessionStorage.setItem('pendingRecommendations', JSON.stringify(currentRecommendations));
+                            sessionStorage.setItem('pendingPlaylist', 'true');
+                        }
+
+                        // Redirect to OAuth
+                        window.location.href = loginUrl;
+                    } else {
+                        // Desktop: Use popup (works fine on desktop)
+                        const width = 500;
+                        const height = 700;
+                        const left = (window.screen.width / 2) - (width / 2);
+                        const top = (window.screen.height / 2) - (height / 2);
+
+                        console.log('Desktop detected: Opening OAuth popup');
+
+                        const popup = window.open(
+                            loginUrl,
+                            'Spotify Login',
+                            `width=${width},height=${height},left=${left},top=${top}`
+                        );
+
+                        if (!popup) {
+                            showNotification('Please allow popups to authenticate', false);
+                        }
                     }
                 } else {
                     // Show playlist name modal
@@ -1492,6 +1507,34 @@
                     }
                 });
             }
+
+            // Check if user just returned from OAuth (mobile redirect)
+            const pendingPlaylist = sessionStorage.getItem('pendingPlaylist');
+            const pendingRecs = sessionStorage.getItem('pendingRecommendations');
+
+            if (pendingPlaylist === 'true' && pendingRecs) {
+                console.log('Restored from OAuth redirect');
+
+                // Restore recommendations
+                try {
+                    currentRecommendations = JSON.parse(pendingRecs);
+
+                    // Clear session storage
+                    sessionStorage.removeItem('pendingPlaylist');
+                    sessionStorage.removeItem('pendingRecommendations');
+
+                    // Show playlist modal after auth
+                    setTimeout(() => {
+                        document.body.classList.add('modal-open');
+                        document.getElementById('playlistModal').classList.add('active');
+                        document.getElementById('playlistNameInput').focus();
+                    }, 500);
+                } catch (e) {
+                    console.error('Failed to restore recommendations:', e);
+                    sessionStorage.removeItem('pendingPlaylist');
+                    sessionStorage.removeItem('pendingRecommendations');
+                }
+            }
         });
 
         // Song detail modal functionality
@@ -1578,6 +1621,14 @@
 
         function closeSongDetail() {
             const modal = document.getElementById('songDetailModal');
+            const modalContent = modal.querySelector('.song-detail-content');
+
+            // Reset positioning styles to prevent half-visible modal on second open
+            modalContent.style.top = '';
+            modalContent.style.left = '';
+            modalContent.style.transform = '';
+            modalContent.style.maxHeight = '';
+
             modal.classList.remove('active');
             document.body.classList.remove('modal-open');
             currentModalIndex = null;
