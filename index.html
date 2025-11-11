@@ -923,6 +923,16 @@
             }
         }
 
+        /* Desktop-specific modal styles */
+        @media (min-width: 769px) {
+            .song-detail-content {
+                position: static;
+                animation: none;
+                width: auto;
+                margin: auto;
+            }
+        }
+
         @keyframes modalSlideUp {
             from {
                 transform: translateY(100px);
@@ -1639,10 +1649,19 @@
 
             if (!modal.classList.contains('active')) return;
 
-            // Only apply positioning on mobile
-            if (window.innerWidth > 768) return;
+            const isMobile = window.innerWidth <= 768;
 
-            // Wait for next frame to ensure DOM is rendered
+            if (!isMobile) {
+                // Desktop: Reset any inline styles to let CSS handle centering
+                modalContent.style.position = '';
+                modalContent.style.top = '';
+                modalContent.style.left = '';
+                modalContent.style.transform = '';
+                modalContent.style.maxHeight = '';
+                return;
+            }
+
+            // Mobile: Wait for next frame to ensure DOM is rendered
             requestAnimationFrame(() => {
                 const modalHeight = modalContent.offsetHeight;
                 const viewportHeight = window.visualViewport?.height || window.innerHeight;
@@ -1734,7 +1753,8 @@
             const modal = document.getElementById('songDetailModal');
             const modalContent = modal.querySelector('.song-detail-content');
 
-            // Reset positioning styles to prevent half-visible modal on second open
+            // Reset all positioning styles to prevent issues on re-open
+            modalContent.style.position = '';
             modalContent.style.top = '';
             modalContent.style.left = '';
             modalContent.style.transform = '';
