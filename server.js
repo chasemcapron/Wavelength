@@ -213,44 +213,76 @@ async function getSpotifyTrack(trackId) {
   return await response.json();
 }
 
-async function getAudioFeatures(trackId) {
-  const token = await getSpotifyToken();
-  const url = `https://api.spotify.com/v1/audio-features/${trackId}`;
-
-  try {
-    console.log(`🔍 Fetching audio features for track: ${trackId}`);
-    const response = await fetch(url, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.log(`⚠️ Audio features API error: ${response.status} - ${errorText}`);
-      return null;
+// Generate heuristic danceability and mood scores based on track metadata
+// Since Spotify's audio features API requires OAuth, we use smart heuristics instead
+function getHeuristicAudioFeatures(trackId, trackName, artistName, popularity) {
+  // Seeded random number generator for consistent scores per track
+  const hashCode = (str) => {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = ((hash << 5) - hash) + str.charCodeAt(i);
+      hash = hash & hash;
     }
+    return Math.abs(hash);
+  };
 
-    const features = await response.json();
-    console.log(`📊 Raw Spotify audio features:`, JSON.stringify(features));
+  const seed = hashCode(trackId);
+  const seededRandom = () => {
+    const x = Math.sin(seed) * 10000;
+    return x - Math.floor(x);
+  };
 
-    // Check if we got valid data
-    if (!features || typeof features !== 'object') {
-      console.log(`⚠️ Invalid audio features response`);
-      return null;
-    }
+  // Analyze track name for mood/energy keywords
+  const lowerName = trackName.toLowerCase();
+  const lowerArtist = artistName.toLowerCase();
+  const combined = `${lowerName} ${lowerArtist}`;
 
-    // Convert to 1-10 scale and return relevant features
-    // Important: Use !== undefined check instead of truthiness to handle 0 values
-    const result = {
-      danceability: (features.energy !== undefined && features.energy !== null) ? Math.round(features.energy * 10) : null,
-      mood: (features.valence !== undefined && features.valence !== null) ? Math.round(features.valence * 10) : null
-    };
+  let danceabilityMod = 0;
+  let moodMod = 0;
 
-    console.log(`🎵 Converted audio features: Danceability=${result.danceability}/10 (from energy=${features.energy}), Mood=${result.mood}/10 (from valence=${features.valence})`);
-    return result;
-  } catch (error) {
-    console.log(`⚠️ Audio features fetch error:`, error.message);
-    return null;
-  }
+  // Danceability keywords (high energy)
+  const danceKeywords = ['dance', 'party', 'club', 'edm', 'beat', 'groove', 'bounce', 'funk', 'disco', 'house'];
+  const chillKeywords = ['chill', 'slow', 'acoustic', 'ballad', 'piano', 'lullaby', 'ambient', 'calm'];
+
+  // Mood keywords
+  const happyKeywords = ['love', 'happy', 'sunshine', 'summer', 'good', 'party', 'celebrate', 'joy', 'smile'];
+  const sadKeywords = ['sad', 'cry', 'lonely', 'blue', 'heartbreak', 'sorry', 'miss', 'goodbye', 'tears'];
+
+  // Check for keywords
+  danceKeywords.forEach(keyword => {
+    if (combined.includes(keyword)) danceabilityMod += 2;
+  });
+  chillKeywords.forEach(keyword => {
+    if (combined.includes(keyword)) danceabilityMod -= 2;
+  });
+  happyKeywords.forEach(keyword => {
+    if (combined.includes(keyword)) moodMod += 2;
+  });
+  sadKeywords.forEach(keyword => {
+    if (combined.includes(keyword)) moodMod -= 2;
+  });
+
+  // Popularity influence (more popular = slightly more upbeat on average)
+  const popularityInfluence = popularity > 70 ? 1 : popularity < 30 ? -1 : 0;
+
+  // Generate base scores with variance (3-8 range, then modified)
+  const baseVariance = Math.floor(seededRandom() * 6) + 3; // 3-8
+  const danceability = Math.max(1, Math.min(10, baseVariance + danceabilityMod + popularityInfluence));
+
+  const moodVariance = Math.floor((seededRandom() + seed % 7) * 6) + 3; // Different seed for variety
+  const mood = Math.max(1, Math.min(10, moodVariance + moodMod + popularityInfluence));
+
+  console.log(`🎲 Generated heuristic scores for "${trackName}": Danceability=${danceability}/10, Mood=${mood}/10 (popularity=${popularity}, mods: dance=${danceabilityMod}, mood=${moodMod})`);
+
+  return {
+    danceability,
+    mood
+  };
+}
+
+async function getAudioFeatures(trackId, trackName, artistName, popularity) {
+  // Use heuristic scores since Spotify's audio features API requires OAuth
+  return getHeuristicAudioFeatures(trackId, trackName, artistName, popularity || 50);
 }
 
 // --- Last.fm API Helper Functions ---
@@ -295,9 +327,14 @@ async function enrichWithSpotify(lastfmTracks, seedArtist) {
           console.log(`⚠️ No preview URL for: "${spotifyTrack.name}" by ${spotifyTrack.artists[0].name}`);
         }
 
-        // Fetch audio features for mood and danceability
+        // Generate heuristic audio features for mood and danceability
         const trackId = spotifyTrack.id;
-        const audioFeatures = await getAudioFeatures(trackId);
+        const audioFeatures = await getAudioFeatures(
+          trackId,
+          spotifyTrack.name,
+          spotifyTrack.artists[0].name,
+          spotifyTrack.popularity
+        );
 
         return {
           name: spotifyTrack.name,
