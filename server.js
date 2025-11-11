@@ -133,7 +133,7 @@ async function searchSpotifyTrack(songName, artistName) {
   if (!data.tracks?.items?.[0]) {
     console.log(`Strict search failed for "${songName}" by "${artistName}", trying fuzzy search...`);
     searchQuery = encodeURIComponent(`${songName} ${artistName}`); // No strict filters
-    url = `https://api.spotify.com/v1/search?q=${searchQuery}&type=track&limit=1&market=US`;
+    url = `https://api.spotify.com/v1/search?q=${searchQuery}&type=track&limit=5&market=US`; // Get top 5 to pick most popular
 
     response = await fetch(url, {
       headers: { Authorization: `Bearer ${token}` },
@@ -141,8 +141,15 @@ async function searchSpotifyTrack(songName, artistName) {
 
     data = await response.json();
 
-    if (data.tracks?.items?.[0]) {
-      console.log(`✅ Fuzzy search found: "${data.tracks.items[0].name}" by ${data.tracks.items[0].artists[0].name}`);
+    if (data.tracks?.items?.length > 0) {
+      // Sort by popularity and pick the most popular track
+      const sortedByPopularity = data.tracks.items.sort((a, b) => b.popularity - a.popularity);
+      const topResult = sortedByPopularity[0];
+
+      console.log(`✅ Fuzzy search found: "${topResult.name}" by ${topResult.artists[0].name} (popularity: ${topResult.popularity})`);
+
+      // Return the most popular result in the same format
+      data.tracks.items = [topResult];
     }
   }
 
@@ -201,6 +208,11 @@ async function enrichWithSpotify(lastfmTracks, seedArtist) {
       const spotifyTrack = await searchSpotifyTrack(track.name, track.artist.name);
       
       if (spotifyTrack) {
+        const hasPreview = !!spotifyTrack.preview_url;
+        if (!hasPreview) {
+          console.log(`⚠️ No preview URL for: "${spotifyTrack.name}" by ${spotifyTrack.artists[0].name}`);
+        }
+
         return {
           name: spotifyTrack.name,
           artist: spotifyTrack.artists[0].name,
