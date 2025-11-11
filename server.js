@@ -114,10 +114,12 @@ async function getSpotifyToken() {
 
 async function searchSpotifyTrack(songName, artistName) {
   const token = await getSpotifyToken();
-  const searchQuery = encodeURIComponent(`track:${songName} artist:${artistName}`);
-  const url = `https://api.spotify.com/v1/search?q=${searchQuery}&type=track&limit=1&market=US`;
 
-  const response = await fetch(url, {
+  // Try 1: Strict search (exact match)
+  let searchQuery = encodeURIComponent(`track:${songName} artist:${artistName}`);
+  let url = `https://api.spotify.com/v1/search?q=${searchQuery}&type=track&limit=1&market=US`;
+
+  let response = await fetch(url, {
     headers: { Authorization: `Bearer ${token}` },
   });
 
@@ -125,7 +127,25 @@ async function searchSpotifyTrack(songName, artistName) {
     throw new Error(`Spotify search failed: ${response.status}`);
   }
 
-  const data = await response.json();
+  let data = await response.json();
+
+  // If strict search found nothing, try fuzzy search (handles typos, apostrophes, etc.)
+  if (!data.tracks?.items?.[0]) {
+    console.log(`Strict search failed for "${songName}" by "${artistName}", trying fuzzy search...`);
+    searchQuery = encodeURIComponent(`${songName} ${artistName}`); // No strict filters
+    url = `https://api.spotify.com/v1/search?q=${searchQuery}&type=track&limit=1&market=US`;
+
+    response = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    data = await response.json();
+
+    if (data.tracks?.items?.[0]) {
+      console.log(`✅ Fuzzy search found: "${data.tracks.items[0].name}" by ${data.tracks.items[0].artists[0].name}`);
+    }
+  }
+
   return data.tracks?.items?.[0] || null;
 }
 
@@ -190,7 +210,8 @@ async function enrichWithSpotify(lastfmTracks, seedArtist) {
           albumName: spotifyTrack.album?.name || 'Unknown Album',
           popularity: spotifyTrack.popularity,
           matchScore: parseFloat(track.match || 0),
-          isSameArtist: track.artist.name.toLowerCase() === seedArtist.toLowerCase()
+          isSameArtist: track.artist.name.toLowerCase() === seedArtist.toLowerCase(),
+          previewUrl: spotifyTrack.preview_url || null
         };
       }
       return null;
@@ -388,9 +409,16 @@ app.post('/api/explain', async (req, res) => {
 
     // If all retries failed, return a music-based fallback
     const isSameArtist = recommendation.artist.toLowerCase() === seedSong.artist.toLowerCase();
-    const fallback = isSameArtist
-      ? `More great music from ${recommendation.artist}`
-      : 'Similar musical style and vibe';
+
+    // Build smarter fallback using metadata
+    let fallback;
+    if (isSameArtist) {
+      fallback = `More great music from ${recommendation.artist}`;
+    } else if (recommendation.albumName && recommendation.albumName !== 'Unknown Album') {
+      fallback = `From "${recommendation.albumName}"`;
+    } else {
+      fallback = 'Similar musical style and vibe';
+    }
 
     console.error('All Gemini attempts failed, using fallback');
     res.json({ explanation: fallback });
@@ -486,7 +514,8 @@ ${finalContext.recommendations.map((r, i) =>
         uri: r.uri,
         albumCover: r.albumCover,
         albumName: r.albumName,
-        spotifyLink: r.uri
+        spotifyLink: r.uri,
+        previewUrl: r.previewUrl
       }))
     });
 

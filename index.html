@@ -579,6 +579,30 @@
             background: #181818;
         }
 
+        .btn-preview {
+            background: #535353 !important;
+            color: #fff !important;
+            border: none;
+            cursor: pointer;
+            padding: 8px 16px;
+            border-radius: 500px;
+            font-size: 12px;
+            font-weight: 700;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-preview:hover {
+            background: #666 !important;
+            transform: scale(1.05);
+        }
+
+        .btn-preview:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         .error {
             background: #2A1A1A;
             color: #E74C3C;
@@ -790,6 +814,7 @@
                             <div class="track-artist">${escapeHtml(track.artist)}</div>
                         </div>
                         <div class="track-links">
+                            ${track.previewUrl ? `<button class="btn-link btn-preview" onclick="playPreview('${track.previewUrl}', ${index}, event)">▶ Preview</button>` : ''}
                             <a href="${track.uri}" class="btn-link btn-app">Open in App</a>
                             <a href="${track.url}" class="btn-link" target="_blank" rel="noopener">Web Player</a>
                         </div>
@@ -828,7 +853,11 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         seedSong: currentSeedSong,
-                        recommendation: track
+                        recommendation: {
+                            title: track.title,
+                            artist: track.artist,
+                            albumName: track.albumName
+                        }
                     })
                 });
 
@@ -853,6 +882,57 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        // Audio preview player
+        let currentAudio = null;
+        let currentPlayingIndex = null;
+
+        function playPreview(url, index, event) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            const btn = event.target;
+
+            // Stop currently playing audio
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio.currentTime = 0;
+
+                // Reset previous button
+                if (currentPlayingIndex !== null) {
+                    const allBtns = document.querySelectorAll('.btn-preview');
+                    allBtns.forEach(b => {
+                        if (b !== btn) b.textContent = '▶ Preview';
+                    });
+                }
+            }
+
+            // If clicking same button, just stop
+            if (currentPlayingIndex === index && btn.textContent === '⏸ Playing') {
+                currentAudio = null;
+                currentPlayingIndex = null;
+                btn.textContent = '▶ Preview';
+                return;
+            }
+
+            // Play new audio
+            currentAudio = new Audio(url);
+            currentPlayingIndex = index;
+            btn.textContent = '⏸ Playing';
+
+            currentAudio.play().catch(err => {
+                console.error('Audio playback failed:', err);
+                btn.textContent = '▶ Preview';
+                currentAudio = null;
+                currentPlayingIndex = null;
+            });
+
+            currentAudio.onended = () => {
+                btn.textContent = '▶ Preview';
+                currentAudio = null;
+                currentPlayingIndex = null;
+            };
         }
     </script>
 </body>
