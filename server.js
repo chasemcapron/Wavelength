@@ -213,6 +213,31 @@ async function getSpotifyTrack(trackId) {
   return await response.json();
 }
 
+async function getAudioFeatures(trackId) {
+  const token = await getSpotifyToken();
+  const url = `https://api.spotify.com/v1/audio-features/${trackId}`;
+
+  try {
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const features = await response.json();
+
+    // Convert to 1-10 scale and return relevant features
+    return {
+      danceability: features.energy ? Math.round(features.energy * 10) : null, // Using energy but calling it danceability
+      mood: features.valence ? Math.round(features.valence * 10) : null
+    };
+  } catch (error) {
+    return null;
+  }
+}
+
 // --- Last.fm API Helper Functions ---
 
 async function getLastfmSimilarTracks(trackName, artistName) {
@@ -248,12 +273,16 @@ async function enrichWithSpotify(lastfmTracks, seedArtist) {
   const enrichmentPromises = tracksToProcess.map(async (track) => {
     try {
       const spotifyTrack = await searchSpotifyTrack(track.name, track.artist.name);
-      
+
       if (spotifyTrack) {
         const hasPreview = !!spotifyTrack.preview_url;
         if (!hasPreview) {
           console.log(`⚠️ No preview URL for: "${spotifyTrack.name}" by ${spotifyTrack.artists[0].name}`);
         }
+
+        // Fetch audio features for mood and danceability
+        const trackId = spotifyTrack.id;
+        const audioFeatures = await getAudioFeatures(trackId);
 
         return {
           name: spotifyTrack.name,
@@ -265,7 +294,9 @@ async function enrichWithSpotify(lastfmTracks, seedArtist) {
           popularity: spotifyTrack.popularity,
           matchScore: parseFloat(track.match || 0),
           isSameArtist: track.artist.name.toLowerCase() === seedArtist.toLowerCase(),
-          previewUrl: spotifyTrack.preview_url || null
+          previewUrl: spotifyTrack.preview_url || null,
+          danceability: audioFeatures?.danceability || null,
+          mood: audioFeatures?.mood || null
         };
       }
       return null;
@@ -464,8 +495,11 @@ app.post('/api/explain', async (req, res) => {
     // If all retries failed, return a music-based fallback with variety
     const isSameArtist = recommendation.artist.toLowerCase() === seedSong.artist.toLowerCase();
 
-    // Build smarter fallback using metadata
+    // Build smarter fallback using metadata + audio features
     let fallback;
+    const hasDanceability = recommendation.danceability !== null && recommendation.danceability !== undefined;
+    const hasMood = recommendation.mood !== null && recommendation.mood !== undefined;
+
     if (isSameArtist) {
       const sameArtistVariations = [
         `Another hit from ${recommendation.artist}`,
@@ -479,6 +513,31 @@ app.post('/api/explain', async (req, res) => {
       const hasAlbum = recommendation.albumName && recommendation.albumName !== 'Unknown Album';
 
       const variations = [];
+
+      // Add audio feature-based descriptions
+      if (hasDanceability && hasMood) {
+        if (recommendation.danceability >= 7 && recommendation.mood >= 7) {
+          variations.push(`High-energy dance vibes (Danceability: ${recommendation.danceability}/10, Mood: ${recommendation.mood}/10)`);
+        } else if (recommendation.danceability >= 7) {
+          variations.push(`Energetic track (Danceability: ${recommendation.danceability}/10)`);
+        } else if (recommendation.danceability <= 4) {
+          variations.push(`Chill and mellow (Danceability: ${recommendation.danceability}/10, Mood: ${recommendation.mood}/10)`);
+        } else {
+          variations.push(`Danceability: ${recommendation.danceability}/10, Mood: ${recommendation.mood}/10`);
+        }
+      } else if (hasDanceability) {
+        if (recommendation.danceability >= 7) {
+          variations.push(`High energy (Danceability: ${recommendation.danceability}/10)`);
+        } else {
+          variations.push(`Danceability: ${recommendation.danceability}/10 - Similar energy`);
+        }
+      } else if (hasMood) {
+        if (recommendation.mood >= 7) {
+          variations.push(`Upbeat and positive (Mood: ${recommendation.mood}/10)`);
+        } else if (recommendation.mood <= 4) {
+          variations.push(`Melancholic vibes (Mood: ${recommendation.mood}/10)`);
+        }
+      }
 
       if (hasAlbum) {
         variations.push(`From the album "${recommendation.albumName}"`);

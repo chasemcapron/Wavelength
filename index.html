@@ -75,6 +75,13 @@
             perspective: 1000px;
         }
 
+        @media (max-width: 768px) {
+            .hero {
+                margin-bottom: 20px;
+                min-height: auto;
+            }
+        }
+
         .keycap-container {
             position: relative;
             display: flex;
@@ -775,7 +782,7 @@
             /* Smaller, simpler keycaps on mobile */
             .keycap-container {
                 gap: 5px;
-                padding: 15px 0;
+                padding: 10px 0 15px 0;
             }
 
             .keycap {
