@@ -549,36 +549,20 @@ app.post('/api/explain', async (req, res) => {
         `Another track by ${recommendation.artist}`
       ];
       fallback = sameArtistVariations[Math.floor(Math.random() * sameArtistVariations.length)];
+
+      // ALWAYS append danceability and mood scores
+      if (hasDanceability && hasMood) {
+        fallback += ` (Danceability: ${recommendation.danceability}/10, Mood: ${recommendation.mood}/10)`;
+      } else if (hasDanceability) {
+        fallback += ` (Danceability: ${recommendation.danceability}/10)`;
+      } else if (hasMood) {
+        fallback += ` (Mood: ${recommendation.mood}/10)`;
+      }
     } else {
       // Use multiple data points for richer fallbacks
       const hasAlbum = recommendation.albumName && recommendation.albumName !== 'Unknown Album';
 
       const variations = [];
-
-      // Add audio feature-based descriptions
-      if (hasDanceability && hasMood) {
-        if (recommendation.danceability >= 7 && recommendation.mood >= 7) {
-          variations.push(`High-energy dance vibes (Danceability: ${recommendation.danceability}/10, Mood: ${recommendation.mood}/10)`);
-        } else if (recommendation.danceability >= 7) {
-          variations.push(`Energetic track (Danceability: ${recommendation.danceability}/10)`);
-        } else if (recommendation.danceability <= 4) {
-          variations.push(`Chill and mellow (Danceability: ${recommendation.danceability}/10, Mood: ${recommendation.mood}/10)`);
-        } else {
-          variations.push(`Danceability: ${recommendation.danceability}/10, Mood: ${recommendation.mood}/10`);
-        }
-      } else if (hasDanceability) {
-        if (recommendation.danceability >= 7) {
-          variations.push(`High energy (Danceability: ${recommendation.danceability}/10)`);
-        } else {
-          variations.push(`Danceability: ${recommendation.danceability}/10 - Similar energy`);
-        }
-      } else if (hasMood) {
-        if (recommendation.mood >= 7) {
-          variations.push(`Upbeat and positive (Mood: ${recommendation.mood}/10)`);
-        } else if (recommendation.mood <= 4) {
-          variations.push(`Melancholic vibes (Mood: ${recommendation.mood}/10)`);
-        }
-      }
 
       if (hasAlbum) {
         variations.push(`From the album "${recommendation.albumName}"`);
@@ -589,13 +573,22 @@ app.post('/api/explain', async (req, res) => {
         variations.push(`Comparable style by ${recommendation.artist}`);
       }
 
-      // Always add generic options for more variety
+      // Add generic options for variety
       variations.push('Similar musical style and energy');
       variations.push('Shares the same wavelength');
       variations.push('Comparable mood and tempo');
       variations.push('Similar vibes and atmosphere');
 
       fallback = variations[Math.floor(Math.random() * variations.length)];
+
+      // ALWAYS append danceability and mood scores to the fallback
+      if (hasDanceability && hasMood) {
+        fallback += ` (Danceability: ${recommendation.danceability}/10, Mood: ${recommendation.mood}/10)`;
+      } else if (hasDanceability) {
+        fallback += ` (Danceability: ${recommendation.danceability}/10)`;
+      } else if (hasMood) {
+        fallback += ` (Mood: ${recommendation.mood}/10)`;
+      }
     }
 
     console.error('All Gemini attempts failed, using fallback');
