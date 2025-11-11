@@ -115,11 +115,11 @@ async function getSpotifyToken() {
 async function searchSpotifyTrack(songName, artistName) {
   const token = await getSpotifyToken();
 
-  // Try 1: Strict search (exact match)
-  let searchQuery = encodeURIComponent(`track:${songName} artist:${artistName}`);
-  let url = `https://api.spotify.com/v1/search?q=${searchQuery}&type=track&limit=1&market=US`;
+  // Always get multiple results and pick the best one (handles typos, apostrophes, obscure versions)
+  const searchQuery = encodeURIComponent(`${songName} ${artistName}`);
+  const url = `https://api.spotify.com/v1/search?q=${searchQuery}&type=track&limit=10`;
 
-  let response = await fetch(url, {
+  const response = await fetch(url, {
     headers: { Authorization: `Bearer ${token}` },
   });
 
@@ -127,38 +127,36 @@ async function searchSpotifyTrack(songName, artistName) {
     throw new Error(`Spotify search failed: ${response.status}`);
   }
 
-  let data = await response.json();
+  const data = await response.json();
 
-  // If strict search found nothing, try fuzzy search (handles typos, apostrophes, etc.)
-  if (!data.tracks?.items?.[0]) {
-    console.log(`Strict search failed for "${songName}" by "${artistName}", trying fuzzy search...`);
-    searchQuery = encodeURIComponent(`${songName} ${artistName}`); // No strict filters
-    url = `https://api.spotify.com/v1/search?q=${searchQuery}&type=track&limit=5&market=US`; // Get top 5 to pick most popular
-
-    response = await fetch(url, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    data = await response.json();
-
-    if (data.tracks?.items?.length > 0) {
-      // Sort by popularity and pick the most popular track
-      const sortedByPopularity = data.tracks.items.sort((a, b) => b.popularity - a.popularity);
-      const topResult = sortedByPopularity[0];
-
-      console.log(`✅ Fuzzy search found: "${topResult.name}" by ${topResult.artists[0].name} (popularity: ${topResult.popularity})`);
-
-      // Return the most popular result in the same format
-      data.tracks.items = [topResult];
-    }
+  if (!data.tracks?.items?.length) {
+    return null;
   }
 
-  return data.tracks?.items?.[0] || null;
+  // Filter out low-quality/obscure versions (popularity < 20) and sort by popularity
+  const filtered = data.tracks.items.filter(track => track.popularity >= 20);
+
+  if (filtered.length === 0) {
+    // If all tracks are obscure, just use the original list
+    console.log(`⚠️ All results have low popularity for "${songName}" by "${artistName}"`);
+    const sortedByPopularity = data.tracks.items.sort((a, b) => b.popularity - a.popularity);
+    const topResult = sortedByPopularity[0];
+    console.log(`✅ Picked best available: "${topResult.name}" by ${topResult.artists[0].name} (popularity: ${topResult.popularity})`);
+    return topResult;
+  }
+
+  // Sort filtered results by popularity and pick the most popular
+  const sortedByPopularity = filtered.sort((a, b) => b.popularity - a.popularity);
+  const topResult = sortedByPopularity[0];
+
+  console.log(`✅ Found: "${topResult.name}" by ${topResult.artists[0].name} (popularity: ${topResult.popularity})`);
+
+  return topResult;
 }
 
 async function getSpotifyTrack(trackId) {
   const token = await getSpotifyToken();
-  const url = `https://api.spotify.com/v1/tracks/${trackId}?market=US`;
+  const url = `https://api.spotify.com/v1/tracks/${trackId}`;
 
   const response = await fetch(url, {
     headers: { Authorization: `Bearer ${token}` },
