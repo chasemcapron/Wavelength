@@ -24,6 +24,13 @@
             overflow-x: hidden;
         }
 
+        /* Prevent scrolling when modal is open */
+        body.modal-open {
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+        }
+
         /* Animated wireframe wave background */
         body::before {
             content: '';
@@ -767,20 +774,20 @@
 
             /* Smaller, simpler keycaps on mobile */
             .keycap-container {
-                gap: 8px;
-                padding: 20px 0;
+                gap: 5px;
+                padding: 15px 0;
             }
 
             .keycap {
-                width: 45px;
-                height: 45px;
-                font-size: 20px;
+                width: 32px;
+                height: 32px;
+                font-size: 16px;
                 box-shadow:
                     0 2px 0 #d0d0d0,
-                    0 4px 0 #b0b0b0,
-                    0 6px 0 #a0a0a0,
-                    0 8px 10px rgba(0, 0, 0, 0.3),
-                    inset 0 2px 1px #ffffff;
+                    0 3px 0 #b0b0b0,
+                    0 4px 0 #a0a0a0,
+                    0 6px 8px rgba(0, 0, 0, 0.3),
+                    inset 0 1px 1px #ffffff;
             }
 
             .keycap::after {
@@ -788,7 +795,7 @@
             }
 
             .subtitle {
-                font-size: 14px;
+                font-size: 13px;
             }
 
             /* Stack song buttons vertically on mobile */
@@ -846,6 +853,7 @@
             align-items: center;
             justify-content: center;
             padding: 20px;
+            overflow-y: auto;
         }
 
         .song-detail-modal.active {
@@ -860,6 +868,7 @@
             max-height: 80vh;
             overflow-y: auto;
             animation: modalSlideUp 0.3s ease;
+            margin: auto;
         }
 
         @keyframes modalSlideUp {
@@ -1311,6 +1320,7 @@
                 sessionId = event.data.sessionId;
                 localStorage.setItem('wavelength_session', sessionId);
                 // Immediately show playlist modal - no need to check auth again
+                document.body.classList.add('modal-open');
                 document.getElementById('playlistModal').classList.add('active');
                 document.getElementById('playlistNameInput').focus();
             }
@@ -1357,6 +1367,7 @@
                     }
                 } else {
                     // Show playlist name modal
+                    document.body.classList.add('modal-open');
                     document.getElementById('playlistModal').classList.add('active');
                     document.getElementById('playlistNameInput').focus();
                 }
@@ -1366,6 +1377,7 @@
         function closePlaylistModal() {
             document.getElementById('playlistModal').classList.remove('active');
             document.getElementById('playlistNameInput').value = '';
+            document.body.classList.remove('modal-open');
         }
 
         async function createPlaylist() {
@@ -1486,12 +1498,15 @@
                 // Fetch will populate it when ready
             }
 
+            // Prevent body scroll and show modal
+            document.body.classList.add('modal-open');
             modal.classList.add('active');
         }
 
         function closeSongDetail() {
             const modal = document.getElementById('songDetailModal');
             modal.classList.remove('active');
+            document.body.classList.remove('modal-open');
         }
 
         // Close modal when clicking outside
