@@ -137,23 +137,63 @@ async function searchSpotifyTrack(songName, artistName) {
     return null;
   }
 
-  // Filter out low-quality/obscure versions (popularity < 20) and sort by popularity
-  const filtered = data.tracks.items.filter(track => track.popularity >= 20);
+  // Helper function to calculate artist name similarity
+  function artistMatchScore(trackArtist, searchArtist) {
+    const trackArtistLower = trackArtist.toLowerCase().trim();
+    const searchArtistLower = searchArtist.toLowerCase().trim();
+
+    // Exact match = 100 points
+    if (trackArtistLower === searchArtistLower) {
+      return 100;
+    }
+
+    // Contains the full artist name = 80 points
+    if (trackArtistLower.includes(searchArtistLower) || searchArtistLower.includes(trackArtistLower)) {
+      return 80;
+    }
+
+    // Starts with the artist name = 60 points
+    if (trackArtistLower.startsWith(searchArtistLower) || searchArtistLower.startsWith(trackArtistLower)) {
+      return 60;
+    }
+
+    // No match = 0 points
+    return 0;
+  }
+
+  // Score each track: artist match (weighted 70%) + popularity (weighted 30%)
+  const scoredTracks = data.tracks.items.map(track => {
+    const artistScore = artistMatchScore(track.artists[0].name, artistName);
+    const popularityScore = track.popularity;
+
+    // Weighted score: artist match is more important than popularity
+    const totalScore = (artistScore * 0.7) + (popularityScore * 0.3);
+
+    return {
+      track,
+      artistScore,
+      popularityScore,
+      totalScore
+    };
+  });
+
+  // Sort by total score (descending)
+  scoredTracks.sort((a, b) => b.totalScore - a.totalScore);
+
+  // Filter out tracks with very low popularity (< 20) unless they have perfect artist match
+  const filtered = scoredTracks.filter(item =>
+    item.popularityScore >= 20 || item.artistScore === 100
+  );
 
   if (filtered.length === 0) {
-    // If all tracks are obscure, just use the original list
-    console.log(`⚠️ All results have low popularity for "${songName}" by "${artistName}"`);
-    const sortedByPopularity = data.tracks.items.sort((a, b) => b.popularity - a.popularity);
-    const topResult = sortedByPopularity[0];
-    console.log(`✅ Picked best available: "${topResult.name}" by ${topResult.artists[0].name} (popularity: ${topResult.popularity})`);
+    // If all tracks are filtered out, just use the best scoring one
+    const topResult = scoredTracks[0].track;
+    console.log(`⚠️ All results filtered, using best match: "${topResult.name}" by ${topResult.artists[0].name} (score: ${scoredTracks[0].totalScore.toFixed(1)})`);
     return topResult;
   }
 
-  // Sort filtered results by popularity and pick the most popular
-  const sortedByPopularity = filtered.sort((a, b) => b.popularity - a.popularity);
-  const topResult = sortedByPopularity[0];
-
-  console.log(`✅ Found: "${topResult.name}" by ${topResult.artists[0].name} (popularity: ${topResult.popularity})`);
+  const topResult = filtered[0].track;
+  console.log(`✅ Found: "${topResult.name}" by ${topResult.artists[0].name} (artist score: ${filtered[0].artistScore}, popularity: ${filtered[0].popularityScore}, total: ${filtered[0].totalScore.toFixed(1)})`);
 
   return topResult;
 }
