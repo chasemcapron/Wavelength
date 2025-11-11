@@ -27,9 +27,6 @@
         /* Prevent scrolling when modal is open */
         body.modal-open {
             overflow: hidden;
-            position: fixed;
-            width: 100%;
-            height: 100%;
         }
 
         /* Animated wireframe wave background */
@@ -804,6 +801,11 @@
 
             .subtitle {
                 font-size: 13px;
+                margin-bottom: 20px;
+            }
+
+            .keycap-container {
+                margin-bottom: 15px;
             }
 
             /* Stack song buttons vertically on mobile */
@@ -1480,7 +1482,6 @@
 
         // Song detail modal functionality
         let songExplanations = {}; // Store explanations by index
-        let scrollPosition = 0;
 
         function showSongDetail(index) {
             const track = currentRecommendations[index];
@@ -1514,9 +1515,7 @@
                 // Fetch will populate it when ready
             }
 
-            // Save current scroll position and prevent body scroll
-            scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
-            document.body.style.top = `-${scrollPosition}px`;
+            // Prevent body scroll and show modal
             document.body.classList.add('modal-open');
             modal.classList.add('active');
         }
@@ -1525,10 +1524,6 @@
             const modal = document.getElementById('songDetailModal');
             modal.classList.remove('active');
             document.body.classList.remove('modal-open');
-
-            // Restore scroll position
-            document.body.style.top = '';
-            window.scrollTo(0, scrollPosition);
         }
 
         // Close modal when clicking outside
