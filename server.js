@@ -424,14 +424,43 @@ app.post('/api/explain', async (req, res) => {
     const cachedExplanation = getCachedExplanation(seedSong, recommendation);
     if (cachedExplanation) {
       console.log(`✅ Explanation cache HIT`);
-      return res.json({ explanation: cachedExplanation });
+
+      // Append danceability and mood scores to cached explanation
+      let explanation = cachedExplanation;
+      const hasDanceability = recommendation.danceability !== null && recommendation.danceability !== undefined;
+      const hasMood = recommendation.mood !== null && recommendation.mood !== undefined;
+
+      // Only append if not already present (cached explanations from before this update)
+      if (!explanation.includes('Danceability:') && !explanation.includes('Mood:')) {
+        if (hasDanceability && hasMood) {
+          explanation += ` (Danceability: ${recommendation.danceability}/10, Mood: ${recommendation.mood}/10)`;
+        } else if (hasDanceability) {
+          explanation += ` (Danceability: ${recommendation.danceability}/10)`;
+        } else if (hasMood) {
+          explanation += ` (Mood: ${recommendation.mood}/10)`;
+        }
+      }
+
+      return res.json({ explanation });
     }
 
     console.log(`❌ Explanation cache MISS - calling Gemini API`);
 
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
     if (!GEMINI_API_KEY) {
-      return res.json({ explanation: 'Similar musical style and energy' });
+      let explanation = 'Similar musical style and energy';
+      const hasDanceability = recommendation.danceability !== null && recommendation.danceability !== undefined;
+      const hasMood = recommendation.mood !== null && recommendation.mood !== undefined;
+
+      if (hasDanceability && hasMood) {
+        explanation += ` (Danceability: ${recommendation.danceability}/10, Mood: ${recommendation.mood}/10)`;
+      } else if (hasDanceability) {
+        explanation += ` (Danceability: ${recommendation.danceability}/10)`;
+      } else if (hasMood) {
+        explanation += ` (Mood: ${recommendation.mood}/10)`;
+      }
+
+      return res.json({ explanation });
     }
 
     const model = 'gemini-2.5-flash-preview-09-2025';
@@ -476,7 +505,19 @@ app.post('/api/explain', async (req, res) => {
           }
         } else {
           const result = await response.json();
-          const explanation = result.candidates?.[0]?.content?.parts?.[0]?.text || 'Similar musical style';
+          let explanation = result.candidates?.[0]?.content?.parts?.[0]?.text || 'Similar musical style';
+
+          // Append danceability and mood scores if available
+          const hasDanceability = recommendation.danceability !== null && recommendation.danceability !== undefined;
+          const hasMood = recommendation.mood !== null && recommendation.mood !== undefined;
+
+          if (hasDanceability && hasMood) {
+            explanation += ` (Danceability: ${recommendation.danceability}/10, Mood: ${recommendation.mood}/10)`;
+          } else if (hasDanceability) {
+            explanation += ` (Danceability: ${recommendation.danceability}/10)`;
+          } else if (hasMood) {
+            explanation += ` (Mood: ${recommendation.mood}/10)`;
+          }
 
           // Only cache successful explanations
           setCachedExplanation(seedSong, recommendation, explanation);
